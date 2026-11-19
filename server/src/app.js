@@ -5,6 +5,12 @@
  * CORS headers, request body parsers, core routes, and centralized error handling.
  */
 
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Load environment variables from server/.env if not already loaded in the current runtime
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -22,14 +28,21 @@ app.use(helmet());
 
 /**
  * Cross-Origin Resource Sharing (CORS) Middleware
- * Configured to allow communication with the frontend client (default: http://localhost:5180).
+ * Configured to allow communication with frontend clients on port 5180 (both localhost and 127.0.0.1).
  * Port restrictions: Client must run on port 5180. Ports 3000, 5173, and 5022 are forbidden.
  * credentials: true allows HTTP cookies and authorization headers in cross-origin requests.
  */
-const clientOrigin = process.env.CLIENT_URL || 'http://localhost:5180';
+const allowedOrigins = [
+  ...new Set([
+    process.env.CLIENT_URL || 'http://localhost:5180',
+    'http://localhost:5180',
+    'http://127.0.0.1:5180',
+  ]),
+];
+
 app.use(
   cors({
-    origin: clientOrigin,
+    origin: allowedOrigins,
     credentials: true,
   })
 );

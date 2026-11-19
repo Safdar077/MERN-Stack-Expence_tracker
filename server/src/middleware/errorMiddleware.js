@@ -46,6 +46,11 @@ const notFound = (req, res, next) => {
  * @param {import('express').NextFunction} next - Express next middleware function
  */
 const errorHandler = (err, req, res, next) => {
+  // If response headers have already been sent to client, delegate to default Express handler
+  if (res.headersSent) {
+    return next(err);
+  }
+
   // If the status code was not previously set to an error status (e.g. still 200 OK), default to 500
   let statusCode = res.statusCode && res.statusCode >= 400 ? res.statusCode : 500;
   let message = err.message || 'Internal Server Error';
@@ -66,7 +71,10 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === 'ZodError' || (err.issues && Array.isArray(err.issues))) {
     statusCode = 400;
     const issues = err.issues || err.errors || [];
-    message = issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ') || 'Validation failed';
+    message = issues.map((issue) => {
+      const path = Array.isArray(issue.path) && issue.path.length > 0 ? `${issue.path.join('.')}: ` : '';
+      return `${path}${issue.message}`;
+    }).join(', ') || 'Validation failed';
   }
 
   // Handle explicitly attached status codes on custom errors
