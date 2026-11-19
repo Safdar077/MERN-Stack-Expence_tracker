@@ -14,6 +14,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const authRoutes = require('./routes/authRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // Initialize the Express application
@@ -68,6 +69,13 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date(),
   });
 });
+
+/**
+ * Authentication Routes
+ * Route: /api/auth
+ * Handles user registration, authentication (login), and profile retrieval (/me).
+ */
+app.use('/api/auth', authRoutes);
 
 /**
  * 404 Route Not Found Middleware
