@@ -77,4 +77,20 @@ describe('useAnalytics hook', () => {
     expect(result.current.spendingTrends).toEqual({ success: true, ...mockTrends });
     expect(result.current.loading).toBe(false);
   });
+
+  it('parses overview when response payload has data.overview', async () => {
+    axiosClient.get.mockImplementation((url) => {
+      if (url === '/analytics/overview') {
+        return Promise.resolve({ data: { success: true, overview: mockOverview } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() => useAnalytics('Month'));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.overview).toEqual(mockOverview);
+  });
 });

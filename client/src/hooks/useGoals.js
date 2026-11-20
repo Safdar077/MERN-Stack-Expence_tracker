@@ -24,6 +24,21 @@ import { emitSync, onSync } from '../utils/eventBus.js';
  *   - deleteGoal: {Function} Deletes a goal via DELETE /api/goals/:id
  *   - contributeGoal: {Function} Adds funds to a goal from an account via POST /api/goals/:id/contribute
  */
+/**
+ * Helper to normalize goal item names bidirectionally (title <-> name)
+ * Ensures consistency across components expecting either property.
+ */
+const normalizeGoal = (item) => {
+  if (!item || typeof item !== 'object') return item;
+  const title = item.title || item.name || '';
+  const name = item.name || item.title || '';
+  return {
+    ...item,
+    title,
+    name,
+  };
+};
+
 export const useGoals = () => {
   // ---------------------------------------------------------------------------
   // 1. STATE INITIALIZATION
@@ -43,7 +58,7 @@ export const useGoals = () => {
   // ---------------------------------------------------------------------------
 
   /**
-   * Fetches all savings goals for the authenticated user.
+   * Fetches all savings goals for the authenticated user with bidirectional name/title normalization.
    */
   const fetchGoals = useCallback(async () => {
     setLoading(true);
@@ -51,7 +66,8 @@ export const useGoals = () => {
 
     try {
       const response = await axiosClient.get('/goals');
-      const fetchedGoals = response.data.goals || [];
+      const rawGoals = response.data.goals || [];
+      const fetchedGoals = rawGoals.map(normalizeGoal);
 
       setGoals(fetchedGoals);
       return { success: true, goals: fetchedGoals };
@@ -70,9 +86,9 @@ export const useGoals = () => {
   // ---------------------------------------------------------------------------
 
   /**
-   * Creates a new savings goal.
+   * Creates a new savings goal with normalized title and name.
    *
-   * @param {Object} goalData - { name, targetAmount, targetDate, currentAmount, linkedAccountId }
+   * @param {Object} goalData - { name, title, targetAmount, targetDate, currentAmount, linkedAccountId }
    */
   const createGoal = useCallback(
     async (goalData) => {
@@ -80,14 +96,16 @@ export const useGoals = () => {
       setError(null);
 
       try {
-        const response = await axiosClient.post('/goals', goalData);
-        const newGoal = response.data.goal;
+        const payload = {
+          ...goalData,
+          title: goalData.title || goalData.name,
+          name: goalData.name || goalData.title,
+        };
+        const response = await axiosClient.post('/goals', payload);
+        const newGoal = normalizeGoal(response.data.goal);
 
-        // Broadcast sync event to notify other components
+        // Broadcast sync event to notify all components (and trigger reactive refetch via onSync)
         emitSync('goal:created', newGoal);
-
-        // Re-fetch goal list
-        await fetchGoals();
 
         return { success: true, goal: newGoal };
       } catch (err) {
@@ -99,11 +117,11 @@ export const useGoals = () => {
         setLoading(false);
       }
     },
-    [fetchGoals]
+    []
   );
 
   /**
-   * Updates an existing savings goal by ID.
+   * Updates an existing savings goal by ID with normalized title and name.
    *
    * @param {string} id - Goal ObjectId
    * @param {Object} goalData - Fields to update
@@ -114,14 +132,20 @@ export const useGoals = () => {
       setError(null);
 
       try {
-        const response = await axiosClient.put(`/goals/${id}`, goalData);
-        const updatedGoal = response.data.goal;
+        const payload = {
+          ...goalData,
+          ...(goalData.title || goalData.name
+            ? {
+                title: goalData.title || goalData.name,
+                name: goalData.name || goalData.title,
+              }
+            : {}),
+        };
+        const response = await axiosClient.put(`/goals/${id}`, payload);
+        const updatedGoal = normalizeGoal(response.data.goal);
 
-        // Broadcast sync event
+        // Broadcast sync event to notify components
         emitSync('goal:updated', updatedGoal);
-
-        // Re-fetch goal list
-        await fetchGoals();
 
         return { success: true, goal: updatedGoal };
       } catch (err) {
@@ -133,7 +157,7 @@ export const useGoals = () => {
         setLoading(false);
       }
     },
-    [fetchGoals]
+    []
   );
 
   /**
@@ -149,11 +173,8 @@ export const useGoals = () => {
       try {
         await axiosClient.delete(`/goals/${id}`);
 
-        // Broadcast sync event
+        // Broadcast sync event (triggers refetch via onSync)
         emitSync('goal:deleted', { id });
-
-        // Re-fetch goal list
-        await fetchGoals();
 
         return { success: true };
       } catch (err) {
@@ -165,7 +186,7 @@ export const useGoals = () => {
         setLoading(false);
       }
     },
-    [fetchGoals]
+    []
   );
 
   /**
@@ -182,15 +203,13 @@ export const useGoals = () => {
 
       try {
         const response = await axiosClient.post(`/goals/${id}/contribute`, contribution);
-        const { goal: updatedGoal, transaction } = response.data;
+        const updatedGoal = normalizeGoal(response.data.goal);
+        const { transaction } = response.data;
 
         // Broadcast sync events for goal, transaction, and account balance changes
         emitSync('goal:contributed', { goal: updatedGoal, transaction });
         emitSync('transaction:created', transaction);
         emitSync('account:updated', { id: contribution.accountId });
-
-        // Re-fetch goal list
-        await fetchGoals();
 
         return { success: true, goal: updatedGoal, transaction };
       } catch (err) {
@@ -202,7 +221,7 @@ export const useGoals = () => {
         setLoading(false);
       }
     },
-    [fetchGoals]
+    []
   );
 
   // ---------------------------------------------------------------------------

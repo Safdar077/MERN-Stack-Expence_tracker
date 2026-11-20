@@ -303,4 +303,43 @@ describe('useTransactions hook', () => {
 
     expect(axiosClient.get).toHaveBeenCalledTimes(2);
   });
+
+  it('persists active page across sync refetches', async () => {
+    // 1. Initial mount fetches page 1
+    axiosClient.get.mockResolvedValueOnce({
+      data: { success: true, count: 10, total: 30, page: 1, pages: 3, transactions: [] },
+    });
+
+    const { result } = renderHook(() => useTransactions({ page: 1 }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // 2. User changes to page 2
+    axiosClient.get.mockResolvedValueOnce({
+      data: { success: true, count: 10, total: 30, page: 2, pages: 3, transactions: [] },
+    });
+
+    await act(async () => {
+      await result.current.fetchTransactions({ page: 2 });
+    });
+
+    expect(result.current.page).toBe(2);
+
+    // 3. A sync event fires (e.g., from another hook or component)
+    axiosClient.get.mockResolvedValueOnce({
+      data: { success: true, count: 10, total: 31, page: 2, pages: 4, transactions: [] },
+    });
+
+    await act(async () => {
+      eventBus.emitSync('transaction:created', { _id: 'new' });
+      await Promise.resolve();
+    });
+
+    // Verify the sync refetch requested page: 2, not page: 1
+    expect(axiosClient.get).toHaveBeenLastCalledWith('/transactions', {
+      params: expect.objectContaining({ page: 2 }),
+    });
+    expect(result.current.page).toBe(2);
+  });
 });

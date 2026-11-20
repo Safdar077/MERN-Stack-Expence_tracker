@@ -99,9 +99,6 @@ export const useCategories = () => {
         // Broadcast event so other hooks (transactions, budgets) recognize the new category
         emitSync('category:created', newCategory);
 
-        // Re-fetch to update local state with server-sorted categories
-        await fetchCategories();
-
         return { success: true, category: newCategory };
       } catch (err) {
         const message =
@@ -112,7 +109,7 @@ export const useCategories = () => {
         setLoading(false);
       }
     },
-    [fetchCategories]
+    []
   );
 
   // ---------------------------------------------------------------------------

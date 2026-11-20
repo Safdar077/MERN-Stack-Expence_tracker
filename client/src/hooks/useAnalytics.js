@@ -69,7 +69,8 @@ export const useAnalytics = (timeframe = 'Month') => {
         axiosClient.get('/analytics/trends', { params: { timeframe: activeTf } }),
       ]);
 
-      const overviewData = overviewRes.data.data || overviewRes.data;
+      const overviewData =
+        overviewRes.data.overview || overviewRes.data.data || overviewRes.data;
       const categoriesData = categoriesRes.data;
       const trendsData = trendsRes.data;
 

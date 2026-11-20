@@ -20,6 +20,7 @@ describe('useGoals hook', () => {
     {
       _id: 'g1',
       name: 'Emergency Fund',
+      title: 'Emergency Fund',
       targetAmount: 5000,
       currentAmount: 2500,
       progress: 50,
@@ -35,12 +36,12 @@ describe('useGoals hook', () => {
     vi.clearAllMocks();
   });
 
-  it('fetches savings goals on mount', async () => {
+  it('fetches savings goals on mount and normalizes name and title bidirectionally', async () => {
     axiosClient.get.mockResolvedValueOnce({
       data: {
         success: true,
         count: 1,
-        goals: mockGoals,
+        goals: [{ _id: 'g1', name: 'Emergency Fund', targetAmount: 5000, currentAmount: 2500, progress: 50, targetDate: '2027-01-01' }],
       },
     });
 
@@ -52,10 +53,12 @@ describe('useGoals hook', () => {
 
     expect(axiosClient.get).toHaveBeenCalledWith('/goals');
     expect(result.current.goals).toEqual(mockGoals);
+    expect(result.current.goals[0].name).toBe('Emergency Fund');
+    expect(result.current.goals[0].title).toBe('Emergency Fund');
     expect(result.current.loading).toBe(false);
   });
 
-  it('creates goal and emits sync event', async () => {
+  it('creates goal with bidirectional name and title and emits sync event', async () => {
     const emitSpy = vi.spyOn(eventBus, 'emitSync');
 
     axiosClient.get.mockResolvedValueOnce({
@@ -67,24 +70,26 @@ describe('useGoals hook', () => {
       await Promise.resolve();
     });
 
-    const newGoal = { _id: 'g2', name: 'New Laptop', targetAmount: 1200, currentAmount: 0, progress: 0 };
+    const newGoalResponse = { _id: 'g2', name: 'New Laptop', targetAmount: 1200, currentAmount: 0, progress: 0 };
     axiosClient.post.mockResolvedValueOnce({
-      data: { success: true, goal: newGoal },
-    });
-
-    axiosClient.get.mockResolvedValueOnce({
-      data: { success: true, count: 1, goals: [newGoal] },
+      data: { success: true, goal: newGoalResponse },
     });
 
     let res;
     await act(async () => {
-      res = await result.current.createGoal({ name: 'New Laptop', targetAmount: 1200 });
+      res = await result.current.createGoal({ title: 'New Laptop', targetAmount: 1200 });
     });
 
     expect(res.success).toBe(true);
-    expect(axiosClient.post).toHaveBeenCalledWith('/goals', { name: 'New Laptop', targetAmount: 1200 });
-    expect(emitSpy).toHaveBeenCalledWith('goal:created', newGoal);
-    expect(result.current.goals).toEqual([newGoal]);
+    expect(axiosClient.post).toHaveBeenCalledWith('/goals', {
+      title: 'New Laptop',
+      name: 'New Laptop',
+      targetAmount: 1200,
+    });
+    expect(emitSpy).toHaveBeenCalledWith('goal:created', expect.objectContaining({
+      name: 'New Laptop',
+      title: 'New Laptop',
+    }));
   });
 
   it('contributes to a goal and emits sync events', async () => {
@@ -110,10 +115,6 @@ describe('useGoals hook', () => {
       },
     });
 
-    axiosClient.get.mockResolvedValueOnce({
-      data: { success: true, count: 1, goals: [updatedGoal] },
-    });
-
     let res;
     await act(async () => {
       res = await result.current.contributeGoal('g1', { amount: 500, accountId: 'a1' });
@@ -121,7 +122,9 @@ describe('useGoals hook', () => {
 
     expect(res.success).toBe(true);
     expect(axiosClient.post).toHaveBeenCalledWith('/goals/g1/contribute', { amount: 500, accountId: 'a1' });
-    expect(emitSpy).toHaveBeenCalledWith('goal:contributed', { goal: updatedGoal, transaction: mockTx });
-    expect(result.current.goals).toEqual([updatedGoal]);
+    expect(emitSpy).toHaveBeenCalledWith('goal:contributed', {
+      goal: expect.objectContaining({ name: 'Emergency Fund', title: 'Emergency Fund' }),
+      transaction: mockTx,
+    });
   });
 });

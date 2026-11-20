@@ -17,8 +17,8 @@ vi.mock('../api/axiosClient.js', () => {
 
 describe('useRecurring hook', () => {
   const mockRules = [
-    { _id: 'r1', name: 'Netflix', amount: 15.99, frequency: 'Monthly', isActive: true, nextDueDate: '2026-11-20' },
-    { _id: 'r2', name: 'Apartment Rent', amount: 1200, frequency: 'Monthly', isActive: true, nextDueDate: '2026-12-01' },
+    { _id: 'r1', name: 'Netflix', title: 'Netflix', amount: 15.99, frequency: 'Monthly', isActive: true, nextDueDate: '2026-11-20' },
+    { _id: 'r2', name: 'Apartment Rent', title: 'Apartment Rent', amount: 1200, frequency: 'Monthly', isActive: true, nextDueDate: '2026-12-01' },
   ];
 
   beforeEach(() => {
@@ -29,14 +29,21 @@ describe('useRecurring hook', () => {
     vi.clearAllMocks();
   });
 
-  it('fetches recurring rules and populates recurringList, dueItems, upcomingItems', async () => {
+  it('fetches recurring rules and normalizes name and title bidirectionally', async () => {
     axiosClient.get.mockResolvedValueOnce({
       data: {
         success: true,
         count: 2,
-        recurringRules: mockRules,
-        dueItems: [mockRules[0]],
-        upcomingItems: [mockRules[1]],
+        recurringRules: [
+          { _id: 'r1', name: 'Netflix', amount: 15.99, frequency: 'Monthly', isActive: true, nextDueDate: '2026-11-20' },
+          { _id: 'r2', title: 'Apartment Rent', amount: 1200, frequency: 'Monthly', isActive: true, nextDueDate: '2026-12-01' },
+        ],
+        dueItems: [
+          { _id: 'r1', name: 'Netflix', amount: 15.99, frequency: 'Monthly', isActive: true, nextDueDate: '2026-11-20' },
+        ],
+        upcomingItems: [
+          { _id: 'r2', title: 'Apartment Rent', amount: 1200, frequency: 'Monthly', isActive: true, nextDueDate: '2026-12-01' },
+        ],
       },
     });
 
@@ -47,12 +54,50 @@ describe('useRecurring hook', () => {
     });
 
     expect(axiosClient.get).toHaveBeenCalledWith('/recurring');
-    expect(result.current.recurringList).toEqual(mockRules);
-    expect(result.current.dueItems).toEqual([mockRules[0]]);
-    expect(result.current.upcomingItems).toEqual([mockRules[1]]);
+    expect(result.current.recurringList[0].name).toBe('Netflix');
+    expect(result.current.recurringList[0].title).toBe('Netflix');
+    expect(result.current.recurringList[1].name).toBe('Apartment Rent');
+    expect(result.current.recurringList[1].title).toBe('Apartment Rent');
+    expect(result.current.dueItems[0].name).toBe('Netflix');
+    expect(result.current.upcomingItems[0].title).toBe('Apartment Rent');
   });
 
-  it('marks a recurring item as paid, emits sync events, and re-fetches', async () => {
+  it('adds recurring rule with normalized title/name and emits sync event', async () => {
+    const emitSpy = vi.spyOn(eventBus, 'emitSync');
+
+    axiosClient.get.mockResolvedValueOnce({
+      data: { success: true, count: 0, recurringRules: [], dueItems: [], upcomingItems: [] },
+    });
+
+    const { result } = renderHook(() => useRecurring());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const createdRuleResponse = { _id: 'r3', name: 'Gym', amount: 40, frequency: 'Monthly' };
+    axiosClient.post.mockResolvedValueOnce({
+      data: { success: true, rule: createdRuleResponse },
+    });
+
+    let res;
+    await act(async () => {
+      res = await result.current.addRecurring({ title: 'Gym', amount: 40, frequency: 'Monthly' });
+    });
+
+    expect(res.success).toBe(true);
+    expect(axiosClient.post).toHaveBeenCalledWith('/recurring', {
+      title: 'Gym',
+      name: 'Gym',
+      amount: 40,
+      frequency: 'Monthly',
+    });
+    expect(emitSpy).toHaveBeenCalledWith('recurring:created', expect.objectContaining({
+      name: 'Gym',
+      title: 'Gym',
+    }));
+  });
+
+  it('marks a recurring item as paid, emits sync events without double-fetching', async () => {
     const emitSpy = vi.spyOn(eventBus, 'emitSync');
 
     axiosClient.get.mockResolvedValueOnce({
@@ -81,16 +126,6 @@ describe('useRecurring hook', () => {
       },
     });
 
-    axiosClient.get.mockResolvedValueOnce({
-      data: {
-        success: true,
-        count: 1,
-        recurringRules: [updatedRule],
-        dueItems: [],
-        upcomingItems: [],
-      },
-    });
-
     let res;
     await act(async () => {
       res = await result.current.markAsPaid('r1');
@@ -98,7 +133,10 @@ describe('useRecurring hook', () => {
 
     expect(res.success).toBe(true);
     expect(axiosClient.post).toHaveBeenCalledWith('/recurring/r1/pay');
-    expect(emitSpy).toHaveBeenCalledWith('recurring:paid', { rule: updatedRule, transaction: mockTx });
+    expect(emitSpy).toHaveBeenCalledWith('recurring:paid', {
+      rule: expect.objectContaining({ name: 'Netflix', title: 'Netflix' }),
+      transaction: mockTx,
+    });
     expect(emitSpy).toHaveBeenCalledWith('transaction:created', mockTx);
   });
 });

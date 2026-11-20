@@ -127,9 +127,6 @@ export const useBudgets = () => {
         // Broadcast sync event so analytics and dashboard hooks refresh
         emitSync('budget:updated', updated);
 
-        // Re-fetch current budget status to immediately calculate thresholds
-        await fetchBudget();
-
         return { success: true, budget: updated };
       } catch (err) {
         const message =
@@ -140,7 +137,7 @@ export const useBudgets = () => {
         setLoading(false);
       }
     },
-    [fetchBudget]
+    []
   );
 
   // ---------------------------------------------------------------------------

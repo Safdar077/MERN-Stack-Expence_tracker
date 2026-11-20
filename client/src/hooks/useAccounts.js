@@ -88,11 +88,8 @@ export const useAccounts = () => {
         const response = await axiosClient.post('/accounts', accountData);
         const newAccount = response.data.account;
 
-        // Broadcast sync event so other hooks (transactions, analytics) refresh
+        // Broadcast sync event so this hook and other hooks (transactions, analytics) refresh via onSync
         emitSync('account:created', newAccount);
-
-        // Re-fetch accounts to update aggregate total balance and account list
-        await fetchAccounts();
 
         return { success: true, account: newAccount };
       } catch (err) {
@@ -104,7 +101,7 @@ export const useAccounts = () => {
         setLoading(false);
       }
     },
-    [fetchAccounts]
+    []
   );
 
   /**
@@ -126,9 +123,6 @@ export const useAccounts = () => {
         // Broadcast sync event to notify all components
         emitSync('account:updated', updatedAccount);
 
-        // Re-fetch to ensure local state reflects exact database values
-        await fetchAccounts();
-
         return { success: true, account: updatedAccount };
       } catch (err) {
         const message =
@@ -139,7 +133,7 @@ export const useAccounts = () => {
         setLoading(false);
       }
     },
-    [fetchAccounts]
+    []
   );
 
   /**
@@ -159,9 +153,6 @@ export const useAccounts = () => {
         // Broadcast sync event to notify components
         emitSync('account:deleted', { id });
 
-        // Re-fetch accounts to recalculate total balance
-        await fetchAccounts();
-
         return { success: true };
       } catch (err) {
         const message =
@@ -172,7 +163,7 @@ export const useAccounts = () => {
         setLoading(false);
       }
     },
-    [fetchAccounts]
+    []
   );
 
   // ---------------------------------------------------------------------------

@@ -27,6 +27,21 @@ import { emitSync, onSync } from '../utils/eventBus.js';
  *   - deleteRecurring: {Function} Deletes a rule via DELETE /api/recurring/:id
  *   - markAsPaid: {Function} Executes payment for a rule via POST /api/recurring/:id/pay
  */
+/**
+ * Helper to normalize recurring rule item names bidirectionally (title <-> name)
+ * Ensures consistency across components expecting either property.
+ */
+const normalizeRecurring = (item) => {
+  if (!item || typeof item !== 'object') return item;
+  const title = item.title || item.name || '';
+  const name = item.name || item.title || '';
+  return {
+    ...item,
+    title,
+    name,
+  };
+};
+
 export const useRecurring = () => {
   // ---------------------------------------------------------------------------
   // 1. STATE INITIALIZATION
@@ -52,7 +67,7 @@ export const useRecurring = () => {
   // ---------------------------------------------------------------------------
 
   /**
-   * Fetches all recurring rules, separated into due and upcoming lists.
+   * Fetches all recurring rules, separated into due and upcoming lists with title/name normalization.
    */
   const fetchRecurring = useCallback(async () => {
     setLoading(true);
@@ -66,15 +81,19 @@ export const useRecurring = () => {
         upcomingItems: fetchedUpcoming = [],
       } = response.data;
 
-      setRecurringList(recurringRules);
-      setDueItems(fetchedDue);
-      setUpcomingItems(fetchedUpcoming);
+      const normalizedRules = recurringRules.map(normalizeRecurring);
+      const normalizedDue = fetchedDue.map(normalizeRecurring);
+      const normalizedUpcoming = fetchedUpcoming.map(normalizeRecurring);
+
+      setRecurringList(normalizedRules);
+      setDueItems(normalizedDue);
+      setUpcomingItems(normalizedUpcoming);
 
       return {
         success: true,
-        recurringList: recurringRules,
-        dueItems: fetchedDue,
-        upcomingItems: fetchedUpcoming,
+        recurringList: normalizedRules,
+        dueItems: normalizedDue,
+        upcomingItems: normalizedUpcoming,
       };
     } catch (err) {
       const message =
@@ -91,9 +110,9 @@ export const useRecurring = () => {
   // ---------------------------------------------------------------------------
 
   /**
-   * Adds a new recurring transaction rule.
+   * Adds a new recurring transaction rule with normalized title and name.
    *
-   * @param {Object} ruleData - { name, amount, type, categoryId, accountId, frequency, startDate, nextDueDate }
+   * @param {Object} ruleData - { name, title, amount, type, categoryId, accountId, frequency, startDate, nextDueDate }
    */
   const addRecurring = useCallback(
     async (ruleData) => {
@@ -101,14 +120,16 @@ export const useRecurring = () => {
       setError(null);
 
       try {
-        const response = await axiosClient.post('/recurring', ruleData);
-        const newRule = response.data.rule;
+        const payload = {
+          ...ruleData,
+          title: ruleData.title || ruleData.name,
+          name: ruleData.name || ruleData.title,
+        };
+        const response = await axiosClient.post('/recurring', payload);
+        const newRule = normalizeRecurring(response.data.rule);
 
-        // Broadcast sync event to notify other components
+        // Broadcast sync event to notify other components (and trigger reactive refetch via onSync)
         emitSync('recurring:created', newRule);
-
-        // Re-fetch recurring rules
-        await fetchRecurring();
 
         return { success: true, rule: newRule };
       } catch (err) {
@@ -120,11 +141,11 @@ export const useRecurring = () => {
         setLoading(false);
       }
     },
-    [fetchRecurring]
+    []
   );
 
   /**
-   * Updates an existing recurring rule by ID.
+   * Updates an existing recurring rule by ID with normalized title and name.
    *
    * @param {string} id - RecurringRule ObjectId
    * @param {Object} ruleData - Fields to update
@@ -135,14 +156,20 @@ export const useRecurring = () => {
       setError(null);
 
       try {
-        const response = await axiosClient.put(`/recurring/${id}`, ruleData);
-        const updatedRule = response.data.rule;
+        const payload = {
+          ...ruleData,
+          ...(ruleData.title || ruleData.name
+            ? {
+                title: ruleData.title || ruleData.name,
+                name: ruleData.name || ruleData.title,
+              }
+            : {}),
+        };
+        const response = await axiosClient.put(`/recurring/${id}`, payload);
+        const updatedRule = normalizeRecurring(response.data.rule);
 
         // Broadcast sync event
         emitSync('recurring:updated', updatedRule);
-
-        // Re-fetch recurring rules
-        await fetchRecurring();
 
         return { success: true, rule: updatedRule };
       } catch (err) {
@@ -154,7 +181,7 @@ export const useRecurring = () => {
         setLoading(false);
       }
     },
-    [fetchRecurring]
+    []
   );
 
   /**
@@ -173,9 +200,6 @@ export const useRecurring = () => {
         // Broadcast sync event
         emitSync('recurring:deleted', { id });
 
-        // Re-fetch recurring rules
-        await fetchRecurring();
-
         return { success: true };
       } catch (err) {
         const message =
@@ -186,7 +210,7 @@ export const useRecurring = () => {
         setLoading(false);
       }
     },
-    [fetchRecurring]
+    []
   );
 
   /**
@@ -204,17 +228,15 @@ export const useRecurring = () => {
       try {
         const response = await axiosClient.post(`/recurring/${id}/pay`);
         const { rule: updatedRule, transaction } = response.data;
+        const normalizedRule = normalizeRecurring(updatedRule);
 
         // Broadcast sync events to trigger updates across accounts, transactions, and budgets
-        emitSync('recurring:paid', { rule: updatedRule, transaction });
+        emitSync('recurring:paid', { rule: normalizedRule, transaction });
         emitSync('transaction:created', transaction);
         emitSync('account:updated');
         emitSync('budget:updated');
 
-        // Re-fetch recurring rules list
-        await fetchRecurring();
-
-        return { success: true, rule: updatedRule, transaction };
+        return { success: true, rule: normalizedRule, transaction };
       } catch (err) {
         const message =
           err.response?.data?.message || err.message || 'Failed to mark recurring item as paid.';
@@ -224,7 +246,7 @@ export const useRecurring = () => {
         setLoading(false);
       }
     },
-    [fetchRecurring]
+    []
   );
 
   // ---------------------------------------------------------------------------

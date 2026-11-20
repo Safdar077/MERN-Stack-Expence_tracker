@@ -58,9 +58,26 @@ export const useTransactions = (filters = {}) => {
   // Error message state
   const [error, setError] = useState(null);
 
-  // Keep ref of latest filters to allow stable callbacks without stale closures
-  const filtersRef = useRef(filters);
-  filtersRef.current = filters;
+  // Keep refs of current page and active filters to persist across sync refetches
+  const pageRef = useRef(filters.page || 1);
+  pageRef.current = page;
+
+  const currentFiltersRef = useRef(filters);
+  const prevFilterPageRef = useRef(filters.page);
+  const filterKey = JSON.stringify(filters);
+
+  // When filters prop changes externally, update currentFiltersRef
+  useEffect(() => {
+    currentFiltersRef.current = {
+      ...currentFiltersRef.current,
+      ...filters,
+    };
+    if (filters.page !== undefined && filters.page !== prevFilterPageRef.current) {
+      prevFilterPageRef.current = filters.page;
+      pageRef.current = filters.page;
+      setPage(filters.page);
+    }
+  }, [filterKey]);
 
   // ---------------------------------------------------------------------------
   // 2. DATA RETRIEVAL (GET /api/transactions)
@@ -68,6 +85,7 @@ export const useTransactions = (filters = {}) => {
 
   /**
    * Fetches paginated and filtered transactions from GET /api/transactions.
+   * Persists active page across EventBus sync refetches.
    *
    * @param {Object} [overrideFilters={}] - Optional query params that override current filters
    */
@@ -75,7 +93,22 @@ export const useTransactions = (filters = {}) => {
     setLoading(true);
     setError(null);
 
-    const activeParams = { ...filtersRef.current, ...overrideFilters };
+    // If overrideFilters specifies a page, use it; otherwise persist currently active page
+    const targetPage =
+      overrideFilters.page !== undefined ? overrideFilters.page : pageRef.current || 1;
+
+    const activeParams = {
+      ...currentFiltersRef.current,
+      ...overrideFilters,
+      page: targetPage,
+    };
+
+    // Update refs to track current active query parameters
+    currentFiltersRef.current = {
+      ...currentFiltersRef.current,
+      ...overrideFilters,
+    };
+    pageRef.current = targetPage;
 
     try {
       const response = await axiosClient.get('/transactions', {
@@ -85,13 +118,14 @@ export const useTransactions = (filters = {}) => {
       const {
         transactions: fetchedList = [],
         total = 0,
-        page: currentPage = 1,
+        page: currentPage = targetPage,
         pages = 1,
       } = response.data;
 
       setTransactions(fetchedList);
       setTotalCount(total);
       setPage(currentPage);
+      pageRef.current = currentPage;
       setTotalPages(pages);
 
       return {
@@ -129,11 +163,8 @@ export const useTransactions = (filters = {}) => {
         const response = await axiosClient.post('/transactions', transactionData);
         const newTx = response.data.transaction;
 
-        // Broadcast sync event so accounts and budget hooks refresh automatically
+        // Broadcast sync event so accounts, budget, and transaction hooks refresh automatically
         emitSync('transaction:created', newTx);
-
-        // Re-fetch transactions list to include newly added record
-        await fetchTransactions();
 
         return { success: true, transaction: newTx };
       } catch (err) {
@@ -145,7 +176,7 @@ export const useTransactions = (filters = {}) => {
         setLoading(false);
       }
     },
-    [fetchTransactions]
+    []
   );
 
   /**
@@ -166,9 +197,6 @@ export const useTransactions = (filters = {}) => {
         // Broadcast sync event
         emitSync('transaction:updated', updatedTx);
 
-        // Re-fetch transactions list
-        await fetchTransactions();
-
         return { success: true, transaction: updatedTx };
       } catch (err) {
         const message =
@@ -179,7 +207,7 @@ export const useTransactions = (filters = {}) => {
         setLoading(false);
       }
     },
-    [fetchTransactions]
+    []
   );
 
   /**
@@ -198,9 +226,6 @@ export const useTransactions = (filters = {}) => {
         // Broadcast sync event
         emitSync('transaction:deleted', { id });
 
-        // Re-fetch transactions list
-        await fetchTransactions();
-
         return { success: true };
       } catch (err) {
         const message =
@@ -211,7 +236,7 @@ export const useTransactions = (filters = {}) => {
         setLoading(false);
       }
     },
-    [fetchTransactions]
+    []
   );
 
   /**
@@ -222,7 +247,7 @@ export const useTransactions = (filters = {}) => {
   const exportCSV = useCallback(
     async (exportFilters = {}) => {
       try {
-        const params = { ...filtersRef.current, ...exportFilters };
+        const params = { ...currentFiltersRef.current, ...exportFilters };
         const response = await axiosClient.get('/transactions/export', {
           params,
           responseType: 'blob',
@@ -260,9 +285,6 @@ export const useTransactions = (filters = {}) => {
   // ---------------------------------------------------------------------------
   // 4. LIFECYCLE & EVENT SYNCHRONIZATION (onSync)
   // ---------------------------------------------------------------------------
-
-  // Serialized filters key to re-fetch whenever filter props actually change
-  const filterKey = JSON.stringify(filters);
 
   useEffect(() => {
     // 1. Fetch transactions on mount or when filter parameters change
