@@ -135,6 +135,21 @@ describe('Backend Core & Health Check Tests', () => {
       expect(res.body.message).toBe('Title is required, Amount must be positive');
     });
 
+    it('should format MongoDB duplicate key error (code 11000) to 400', async () => {
+      testApp.get('/test-dup-error', (req, res, next) => {
+        const dupErr = new Error('E11000 duplicate key error collection');
+        dupErr.code = 11000;
+        dupErr.keyValue = { email: 'duplicate@example.com' };
+        next(dupErr);
+      });
+      testApp.use(errorHandler);
+
+      const res = await request(testApp).get('/test-dup-error');
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toContain("Duplicate field value entered for 'email'");
+    });
+
     it('should delegate to next(err) if headers are already sent', () => {
       const mockReq = {};
       const mockRes = { headersSent: true };

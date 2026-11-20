@@ -38,6 +38,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide a password'],
       minlength: [6, 'Password must be at least 6 characters long'],
+      select: false,
     },
     currency: {
       type: String,
@@ -57,23 +58,18 @@ const userSchema = new mongoose.Schema(
  * Before saving a User document to the MongoDB database, this hook inspects
  * whether the password field has been added or modified. If modified, it generates
  * a cryptographic salt using bcryptjs (cost factor 10) and replaces the plaintext
- * password with its secure hash. If unmodified, it proceeds without rehashing.
+ * password with its secure hash. If unmodified, it returns early.
+ * In Mongoose v8, pure async functions without next callback are preferred.
  */
-userSchema.pre('save', async function (next) {
-  // If the password hasn't been changed, move to the next middleware
+userSchema.pre('save', async function () {
+  // If the password hasn't been changed, return early
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
 
-  try {
-    // Generate salt with 10 rounds of computation
-    const salt = await bcrypt.genSalt(10);
-    // Hash password with the generated salt
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
+  // Generate salt with 10 rounds of computation and hash password
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 /**

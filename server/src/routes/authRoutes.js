@@ -42,22 +42,19 @@ const authRateLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test',
 });
 
-// Apply rate limiter to all authentication routes
-router.use(authRateLimiter);
-
 /**
  * @route   POST /api/auth/register
  * @desc    Register a new user account and seed default accounts
  * @access  Public
  */
-router.post('/register', validate(registerSchema), registerUser);
+router.post('/register', authRateLimiter, validate(registerSchema), registerUser);
 
 /**
  * @route   POST /api/auth/login
  * @desc    Authenticate user credentials and receive JWT
  * @access  Public
  */
-router.post('/login', validate(loginSchema), loginUser);
+router.post('/login', authRateLimiter, validate(loginSchema), loginUser);
 
 /**
  * @route   GET /api/auth/me

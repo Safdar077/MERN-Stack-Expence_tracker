@@ -37,6 +37,7 @@ const notFound = (req, res, next) => {
  * Handles special cases:
  * - Mongoose CastError: Invalid MongoDB ObjectId (returns 400 Bad Request)
  * - Mongoose ValidationError: Schema validation failure (returns 400 Bad Request)
+ * - MongoDB Duplicate Key Error (code 11000) (returns 400 Bad Request)
  * - ZodError: Request body / parameter validation failure (returns 400 Bad Request)
  * - General errors: Defaults to status code 500 if not already set to a 4xx or 5xx code
  * 
@@ -65,6 +66,13 @@ const errorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError') {
     statusCode = 400;
     message = Object.values(err.errors).map((e) => e.message).join(', ');
+  }
+
+  // Handle MongoDB Duplicate Key Error (e.g., duplicate email)
+  if (err.code === 11000) {
+    statusCode = 400;
+    const field = err.keyValue ? Object.keys(err.keyValue)[0] : '';
+    message = field ? `Duplicate field value entered for '${field}'` : 'Duplicate field value entered';
   }
 
   // Handle Zod Validation Errors (e.g., invalid payload schemas)

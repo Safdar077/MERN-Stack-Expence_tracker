@@ -29,25 +29,35 @@ const protect = async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
+    let decoded;
+
+    // Extract the JWT string after the "Bearer " prefix
+    token = req.headers.authorization.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized, token missing from Bearer header',
+      });
+    }
+
+    // 2. Cryptographically verify the token using JWT_SECRET (catches JWT errors)
     try {
-      // Extract the JWT string after the "Bearer " prefix
-      token = req.headers.authorization.split(' ')[1];
-
-      if (!token) {
-        return res.status(401).json({
-          success: false,
-          message: 'Not authorized, token missing from Bearer header',
-        });
-      }
-
-      // 2. Cryptographically verify the token using JWT_SECRET
-      const decoded = jwt.verify(
+      decoded = jwt.verify(
         token,
         process.env.JWT_SECRET || 'super_secret_jwt_key_for_development_12345!'
       );
+    } catch (error) {
+      // Handles JsonWebTokenError, TokenExpiredError, etc.
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized, token failed or invalid',
+      });
+    }
 
-      // 3. Find the user associated with this token ID in MongoDB
-      // Exclude the hashed password field from being attached to req.user for security
+    // 3. Find the user associated with this token ID in MongoDB
+    // Exclude the hashed password field from being attached to req.user for security
+    try {
       const user = await User.findById(decoded.id).select('-password');
 
       if (!user) {
@@ -60,12 +70,9 @@ const protect = async (req, res, next) => {
       // Attach user document to request object for downstream controllers
       req.user = user;
       return next();
-    } catch (error) {
-      // Handles JsonWebTokenError, TokenExpiredError, etc.
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized, token failed or invalid',
-      });
+    } catch (dbError) {
+      // Forward actual database errors to centralized error handler instead of masking as 401
+      return next(dbError);
     }
   }
 

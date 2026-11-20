@@ -80,8 +80,8 @@ const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Find user by lowercase email
-    const user = await User.findOne({ email });
+    // Find user by lowercase email, explicitly selecting the password field (since select: false in schema)
+    const user = await User.findOne({ email }).select('+password');
 
     // Validate existence and password hash match
     if (!user || !(await user.matchPassword(password))) {

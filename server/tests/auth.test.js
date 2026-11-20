@@ -66,8 +66,13 @@ describe('Auth API Endpoints (/api/auth)', () => {
       expect(response.body.user).toHaveProperty('id');
       expect(response.body.user).not.toHaveProperty('password');
 
-      // Verify user in database has hashed password, not plain text
-      const userInDb = await User.findOne({ email: validUser.email });
+      // Verify user in database has password excluded by default due to select: false
+      const userInDbDefault = await User.findOne({ email: validUser.email });
+      expect(userInDbDefault).not.toBeNull();
+      expect(userInDbDefault.password).toBeUndefined();
+
+      // Verify user in database with explicitly selected password has hashed password
+      const userInDb = await User.findOne({ email: validUser.email }).select('+password');
       expect(userInDb).not.toBeNull();
       expect(userInDb.password).not.toBe(validUser.password);
       expect(userInDb.password.length).toBeGreaterThan(20);
