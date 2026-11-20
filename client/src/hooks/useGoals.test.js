@@ -127,4 +127,31 @@ describe('useGoals hook', () => {
       transaction: mockTx,
     });
   });
+
+  it('supports contributeGoal with separate amount and accountId arguments', async () => {
+    axiosClient.get.mockResolvedValueOnce({
+      data: { success: true, count: 1, goals: mockGoals },
+    });
+
+    const { result } = renderHook(() => useGoals());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const updatedGoal = { ...mockGoals[0], currentAmount: 3500, progress: 70 };
+    axiosClient.post.mockResolvedValueOnce({
+      data: {
+        success: true,
+        goal: updatedGoal,
+      },
+    });
+
+    let res;
+    await act(async () => {
+      res = await result.current.contributeGoal('g1', 1000, 'a2');
+    });
+
+    expect(res.success).toBe(true);
+    expect(axiosClient.post).toHaveBeenCalledWith('/goals/g1/contribute', { amount: 1000, accountId: 'a2' });
+  });
 });

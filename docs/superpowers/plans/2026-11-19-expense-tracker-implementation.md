@@ -447,11 +447,11 @@ Form to set monthly overall limit and per-category limits. Render progress cards
 - `GoalsPage`: Displays savings goals (Goal name, Target amount, Current saved, Target date, Progress percentage). Includes "Contribute / Add Saved Amount" modal.
 - `AnalyticsPage`: Timeframe selector tabs (`Week`, `Month`, `3 Months`, `Year`). Displays Net Savings, Category Breakdown (Recharts Donut/Pie), and Spending Trends over time (Recharts Bar/Area chart).
 
-- [ ] **Step 1: Implement `GoalCard.jsx`, `GoalModal.jsx`, and `GoalsPage.jsx`**
+- [x] **Step 1: Implement `GoalCard.jsx`, `GoalModal.jsx`, and `GoalsPage.jsx`**
 Render progress percentage bar and quick contribution button.
-- [ ] **Step 2: Implement Recharts components in `CategoryPieChart.jsx` and `SpendingTrendChart.jsx`**
+- [x] **Step 2: Implement Recharts components in `CategoryPieChart.jsx` and `SpendingTrendChart.jsx`**
 Responsive container, tooltips, legend, and custom colors.
-- [ ] **Step 3: Implement `AnalyticsPage.jsx`**
+- [x] **Step 3: Implement `AnalyticsPage.jsx`**
 Wire timeframe toggle to `useAnalytics` hook so charts re-render dynamically with server-aggregated data.
 
 ---

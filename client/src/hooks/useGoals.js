@@ -192,17 +192,26 @@ export const useGoals = () => {
   /**
    * Contributes funds from an account to this savings goal.
    * Records transaction and decreases the source account balance.
+   * Supports both (id, { amount, accountId }) and (id, amount, accountId).
    *
    * @param {string} id - Goal ObjectId
-   * @param {Object} contribution - { amount: number, accountId: string }
+   * @param {Object|number} contribution - { amount: number, accountId?: string } or numeric amount
+   * @param {string} [maybeAccountId] - Optional account ID when contribution is a numeric amount
    */
   const contributeGoal = useCallback(
-    async (id, contribution) => {
+    async (id, contribution, maybeAccountId) => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await axiosClient.post(`/goals/${id}/contribute`, contribution);
+        let payload = contribution;
+        if (typeof contribution === 'number' || typeof contribution === 'string') {
+          payload = {
+            amount: Number(contribution),
+            ...(maybeAccountId ? { accountId: maybeAccountId } : {}),
+          };
+        }
+        const response = await axiosClient.post(`/goals/${id}/contribute`, payload);
         const updatedGoal = normalizeGoal(response.data.goal);
         const { transaction } = response.data;
 
