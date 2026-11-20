@@ -250,6 +250,49 @@ describe('RegisterPage Component', () => {
     expect(screen.getByText('Registration server unavailable')).toBeInTheDocument();
   });
 
+  it('dismisses server error alert banner when close button is clicked', () => {
+    vi.spyOn(authHook, 'useAuth').mockReturnValue({
+      register: mockRegister,
+      loading: false,
+      error: 'Registration server unavailable',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/register']}>
+        <RegisterPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('alert-banner')).toBeInTheDocument();
+
+    const closeBtn = screen.getByRole('button', { name: /close alert/i });
+    fireEvent.click(closeBtn);
+
+    expect(screen.queryByTestId('alert-banner')).not.toBeInTheDocument();
+  });
+
+  it('dismisses server error alert banner when user starts typing', () => {
+    vi.spyOn(authHook, 'useAuth').mockReturnValue({
+      register: mockRegister,
+      loading: false,
+      error: 'Registration server unavailable',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/register']}>
+        <RegisterPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('alert-banner')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/full name/i), {
+      target: { value: 'New Name' },
+    });
+
+    expect(screen.queryByTestId('alert-banner')).not.toBeInTheDocument();
+  });
+
   it('disables input fields and button, showing spinner when loading is true', () => {
     vi.spyOn(authHook, 'useAuth').mockReturnValue({
       register: mockRegister,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FaWallet,
@@ -75,11 +75,21 @@ const RegisterPage = () => {
   // Local submitting state flag to ensure immediate button disable
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Tracks whether the active error message was dismissed by the user
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  // Reset dismissal state whenever a new authError arrives from useAuth
+  useEffect(() => {
+    if (authError) {
+      setIsDismissed(false);
+    }
+  }, [authError]);
+
   // Combined loading state: true when either local submit is underway or useAuth is busy
   const isLoading = authLoading || isSubmitting;
 
   // Active error to display: prefers local client validation errors, falls back to auth hook errors
-  const activeError = clientError || authError;
+  const activeError = !isDismissed ? clientError || authError : null;
 
   // ---------------------------------------------------------------------------
   // 3. EVENT HANDLERS
@@ -95,10 +105,11 @@ const RegisterPage = () => {
       [name]: value,
     }));
 
-    // Reset client error when user resumes editing
+    // Reset error when user resumes editing
     if (clientError) {
       setClientError(null);
     }
+    setIsDismissed(true);
   };
 
   /**
@@ -148,6 +159,9 @@ const RegisterPage = () => {
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Reset dismissal flag on every submit attempt
+    setIsDismissed(false);
 
     // 1. Client-side input validation
     const validationError = validateForm();
@@ -211,7 +225,10 @@ const RegisterPage = () => {
             <Alert
               variant="error"
               message={activeError}
-              onClose={() => setClientError(null)}
+              onClose={() => {
+                setClientError(null);
+                setIsDismissed(true);
+              }}
             />
           </div>
         )}

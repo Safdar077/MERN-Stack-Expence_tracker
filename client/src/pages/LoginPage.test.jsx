@@ -206,6 +206,49 @@ describe('LoginPage Component', () => {
     expect(screen.getByText('Account temporarily locked')).toBeInTheDocument();
   });
 
+  it('dismisses server error alert banner when close button is clicked', () => {
+    vi.spyOn(authHook, 'useAuth').mockReturnValue({
+      login: mockLogin,
+      loading: false,
+      error: 'Invalid credentials provided',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('alert-banner')).toBeInTheDocument();
+
+    const closeBtn = screen.getByRole('button', { name: /close alert/i });
+    fireEvent.click(closeBtn);
+
+    expect(screen.queryByTestId('alert-banner')).not.toBeInTheDocument();
+  });
+
+  it('dismisses server error alert banner when user starts typing', () => {
+    vi.spyOn(authHook, 'useAuth').mockReturnValue({
+      login: mockLogin,
+      loading: false,
+      error: 'Invalid credentials provided',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('alert-banner')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'retry@example.com' },
+    });
+
+    expect(screen.queryByTestId('alert-banner')).not.toBeInTheDocument();
+  });
+
   it('disables inputs and button when loading is true', () => {
     vi.spyOn(authHook, 'useAuth').mockReturnValue({
       login: mockLogin,
