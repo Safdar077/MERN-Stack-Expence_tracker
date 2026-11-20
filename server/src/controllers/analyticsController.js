@@ -63,10 +63,10 @@ const getTimeframeBoundaries = (timeframe) => {
       startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
       break;
     case '3Months':
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89, 0, 0, 0, 0);
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90, 0, 0, 0, 0);
       break;
     case 'Year':
-      startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1, 0, 0, 0, 0);
       break;
     default:
       startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
@@ -371,6 +371,11 @@ const getSpendingTrends = async (req, res, next) => {
           net: 0,
         });
       }
+    }
+
+    // Align rangeStartDate directly with the earliest chronological bucket
+    if (buckets.length > 0) {
+      rangeStartDate = buckets[0].startDate || buckets[0].date;
     }
 
     // Dynamic aggregation pipeline: strictly scoped to authenticated user and timeframe
