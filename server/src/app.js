@@ -18,6 +18,9 @@ const authRoutes = require('./routes/authRoutes');
 const accountRoutes = require('./routes/accountRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
+const budgetRoutes = require('./routes/budgetRoutes');
+const goalRoutes = require('./routes/goalRoutes');
+const recurringRoutes = require('./routes/recurringRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // Initialize the Express application
@@ -100,6 +103,27 @@ app.use('/api/categories', categoryRoutes);
  * Handles CRUD operations, balance synchronization, filtering, pagination, and CSV export.
  */
 app.use('/api/transactions', transactionRoutes);
+
+/**
+ * Budget Routes
+ * Route: /api/budgets
+ * Handles monthly budget limits, threshold alerts (50%, 90%, 100%, >100%), and spending tracking.
+ */
+app.use('/api/budgets', budgetRoutes);
+
+/**
+ * Savings Goal Routes
+ * Route: /api/goals
+ * Handles savings goals, progress tracking, and contributions with optional account deductions.
+ */
+app.use('/api/goals', goalRoutes);
+
+/**
+ * Recurring Rules Routes
+ * Route: /api/recurring
+ * Handles recurring income/expense rules, upcoming due item tracking via Date math, and "mark as paid" transactions.
+ */
+app.use('/api/recurring', recurringRoutes);
 
 /**
  * 404 Route Not Found Middleware
