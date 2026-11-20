@@ -343,11 +343,11 @@ Document all state flows with comments.
 - `Sidebar` & `Navbar`: Responsive navigation linking to Dashboard, Transactions, Accounts, Budgets, Goals, Analytics, and user profile/logout.
 - `ProtectedRoute`: Checks token, renders `<Outlet />` or redirects to `/login`.
 
-- [ ] **Step 1: Implement `NotificationBell.jsx`**
+- [x] **Step 1: Implement `NotificationBell.jsx`**
 Fetch due items using `useRecurring` and budget alerts using `useBudgets`. Show color-coded alert badges (yellow for 50%, orange for 90%, red for 100%+). Provide "Mark as Paid" button that executes recurring transaction and emits sync event.
-- [ ] **Step 2: Implement `Navbar.jsx`, `Sidebar.jsx`, and `Layout.jsx`**
+- [x] **Step 2: Implement `Navbar.jsx`, `Sidebar.jsx`, and `Layout.jsx`**
 Mobile-first responsive drawer + desktop persistent sidebar with `react-icons`.
-- [ ] **Step 3: Setup routing in `App.jsx`**
+- [x] **Step 3: Setup routing in `App.jsx`**
 Configure React Router with protected routes and public routes (`/login`, `/register`).
 
 ---
