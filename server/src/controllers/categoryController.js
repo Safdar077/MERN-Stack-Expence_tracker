@@ -99,17 +99,20 @@ const createCustomCategory = async (req, res, next) => {
   try {
     const { name, type, icon } = req.body;
 
-    // Check if the user already has an identical custom category
+    // Escape regex special characters to prevent RegExp injection and handle names like "Tech (Hardware)"
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Check if category already exists either as a system default or for this user
     const duplicateCategory = await Category.findOne({
-      userId: req.user._id,
-      name: { $regex: new RegExp(`^${name}$`, 'i') },
+      $or: [{ userId: null }, { userId: req.user._id }],
+      name: { $regex: new RegExp(`^${escapedName}$`, 'i') },
       type,
     });
 
     if (duplicateCategory) {
       return res.status(400).json({
         success: false,
-        message: `You already have a custom category named "${name}" for ${type}`,
+        message: `A category named "${name}" already exists for ${type}`,
       });
     }
 

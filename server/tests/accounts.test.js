@@ -180,6 +180,45 @@ describe('Accounts & Categories API Endpoints', () => {
         expect(res.body.account.balance).toBe(250);
       });
 
+      it('should only update allowed fields and ignore attempts to overwrite userId', async () => {
+        const account = await Account.create({
+          userId: userAId,
+          name: 'Account With Protected Owner',
+          type: 'Cash',
+          balance: 100,
+        });
+
+        const fakeUserId = new mongoose.Types.ObjectId();
+        const res = await request(app)
+          .put(`/api/accounts/${account._id}`)
+          .set('Authorization', `Bearer ${userAToken}`)
+          .send({
+            name: 'Renamed Account',
+            userId: fakeUserId, // attempting to reassign ownership
+            maliciousField: 'exploit',
+          });
+
+        expect(res.status).toBe(200);
+        const refreshed = await Account.findById(account._id);
+        expect(refreshed.name).toBe('Renamed Account');
+        expect(refreshed.userId.toString()).toBe(userAId);
+        expect(refreshed.maliciousField).toBeUndefined();
+      });
+
+      it('should reject non-finite numbers for balance in account creation and update', async () => {
+        const createRes = await request(app)
+          .post('/api/accounts')
+          .set('Authorization', `Bearer ${userAToken}`)
+          .send({
+            name: 'Infinite Money',
+            type: 'Cash',
+            balance: Infinity,
+          });
+
+        expect(createRes.status).toBe(400);
+        expect(createRes.body.success).toBe(false);
+      });
+
       it('should return 404 when updating non-existent account', async () => {
         const fakeId = new mongoose.Types.ObjectId();
         const res = await request(app)
@@ -420,6 +459,70 @@ describe('Accounts & Categories API Endpoints', () => {
         const customCat = res.body.categories.find((c) => c.name === 'Pet Care');
         expect(customCat).toBeDefined();
         expect(customCat.isCustom).toBe(true);
+      });
+
+      it('should allow user to create custom category with special characters safely (RegExp escaping)', async () => {
+        const res = await request(app)
+          .post('/api/categories')
+          .set('Authorization', `Bearer ${userAToken}`)
+          .send({
+            name: 'Tech (Hardware)',
+            type: 'Expense',
+            icon: 'FaLaptopCode',
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body.success).toBe(true);
+        expect(res.body.category.name).toBe('Tech (Hardware)');
+
+        // Duplicate creation attempt should be caught without RegExp crashing
+        const dupRes = await request(app)
+          .post('/api/categories')
+          .set('Authorization', `Bearer ${userAToken}`)
+          .send({
+            name: 'Tech (Hardware)',
+            type: 'Expense',
+            icon: 'FaLaptopCode',
+          });
+
+        expect(dupRes.status).toBe(400);
+        expect(dupRes.body.success).toBe(false);
+        expect(dupRes.body.message).toMatch(/already exists/i);
+      });
+
+      it('should reject custom category creation that duplicates a default category name and type', async () => {
+        // Ensure default categories are seeded first
+        await request(app)
+          .get('/api/categories')
+          .set('Authorization', `Bearer ${userAToken}`);
+
+        // Try creating custom "Food" (which is an existing default Expense category)
+        const resFood = await request(app)
+          .post('/api/categories')
+          .set('Authorization', `Bearer ${userAToken}`)
+          .send({
+            name: 'Food',
+            type: 'Expense',
+            icon: 'FaUtensils',
+          });
+
+        expect(resFood.status).toBe(400);
+        expect(resFood.body.success).toBe(false);
+        expect(resFood.body.message).toMatch(/already exists/i);
+
+        // Try creating custom "Salary" (which is an existing default Income category)
+        const resSalary = await request(app)
+          .post('/api/categories')
+          .set('Authorization', `Bearer ${userAToken}`)
+          .send({
+            name: 'salary', // case-insensitive match
+            type: 'Income',
+            icon: 'FaMoneyBillWave',
+          });
+
+        expect(resSalary.status).toBe(400);
+        expect(resSalary.body.success).toBe(false);
+        expect(resSalary.body.message).toMatch(/already exists/i);
       });
 
       it('should isolate custom categories between User A and User B', async () => {

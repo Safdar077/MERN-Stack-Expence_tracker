@@ -105,6 +105,8 @@ const updateAccount = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    const { name, type, balance, isDefault } = req.body;
+
     // Strict multi-tenant isolation check: verify account exists AND belongs to req.user._id
     const existingAccount = await Account.findOne({
       _id: id,
@@ -119,17 +121,24 @@ const updateAccount = async (req, res, next) => {
     }
 
     // If updating this account to default, clear default status on other user accounts
-    if (req.body.isDefault) {
+    if (isDefault) {
       await Account.updateMany(
         { userId: req.user._id, _id: { $ne: id } },
         { isDefault: false }
       );
     }
 
+    // Only update explicitly allowed fields (prevents unwanted fields like userId injection)
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (type !== undefined) updateData.type = type;
+    if (balance !== undefined) updateData.balance = balance;
+    if (isDefault !== undefined) updateData.isDefault = isDefault;
+
     // Apply updates using findOneAndUpdate with userId enforcement
     const updatedAccount = await Account.findOneAndUpdate(
       { _id: id, userId: req.user._id },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 

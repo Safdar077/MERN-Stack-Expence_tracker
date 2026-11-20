@@ -30,7 +30,7 @@ const createAccountSchema = z.object({
     required_error: 'Account type is required',
     invalid_type_error: `Account type must be one of: ${accountTypes.join(', ')}`,
   }),
-  balance: z.number().default(0).optional(),
+  balance: z.number().finite('Balance must be a finite number').default(0).optional(),
   isDefault: z.boolean().default(false).optional(),
 });
 
@@ -41,7 +41,7 @@ const createAccountSchema = z.object({
  * - All fields are optional, but if provided, must satisfy format constraints.
  * - name: String, trimmed, min 1 character if supplied.
  * - type: Must be one of the valid account types if supplied.
- * - balance: Number if supplied.
+ * - balance: Finite number if supplied.
  * - isDefault: Boolean if supplied.
  */
 const updateAccountSchema = z.object({
@@ -56,7 +56,7 @@ const updateAccountSchema = z.object({
       invalid_type_error: `Account type must be one of: ${accountTypes.join(', ')}`,
     })
     .optional(),
-  balance: z.number().optional(),
+  balance: z.number().finite('Balance must be a finite number').optional(),
   isDefault: z.boolean().optional(),
 });
 
