@@ -373,9 +373,9 @@ const getSpendingTrends = async (req, res, next) => {
       }
     }
 
-    // Align rangeStartDate directly with the earliest chronological bucket
-    if (buckets.length > 0) {
-      rangeStartDate = buckets[0].startDate || buckets[0].date;
+    // Align rangeStartDate directly with the earliest chronological bucket when defined as a Date
+    if (buckets.length > 0 && buckets[0].startDate instanceof Date) {
+      rangeStartDate = buckets[0].startDate;
     }
 
     // Dynamic aggregation pipeline: strictly scoped to authenticated user and timeframe

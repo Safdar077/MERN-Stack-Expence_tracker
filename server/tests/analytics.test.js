@@ -331,6 +331,21 @@ describe('Analytics Engine Backend Tests', () => {
         expect(bucket.net).toBe(0);
       });
     });
+
+    it('should strictly pass Date instances for rangeStartDate and rangeEndDate across all timeframes', async () => {
+      for (const tf of ['Week', 'Month', '3Months', 'Year']) {
+        jest.spyOn(Transaction, 'aggregate').mockResolvedValueOnce([]);
+        mockReq.query = { timeframe: tf };
+        await getSpendingTrends(mockReq, mockRes, mockNext);
+
+        const callArgs = Transaction.aggregate.mock.calls[Transaction.aggregate.mock.calls.length - 1][0];
+        const matchStage = callArgs[0].$match;
+        expect(matchStage.date.$gte).toBeInstanceOf(Date);
+        expect(matchStage.date.$lte).toBeInstanceOf(Date);
+        expect(!isNaN(matchStage.date.$gte.getTime())).toBe(true);
+        expect(!isNaN(matchStage.date.$lte.getTime())).toBe(true);
+      }
+    });
   });
 
   describe('Multi-Tenant Isolation Verification', () => {
