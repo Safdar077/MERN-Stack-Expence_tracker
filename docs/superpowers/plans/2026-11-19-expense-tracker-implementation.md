@@ -382,11 +382,11 @@ Registration form with validation and instant login on success.
 - `DashboardPage`: Displays Total Balance, Total Income, Total Expenses, Budget progress bar with warning badges, Recent 5-10 transactions list, Quick Add Transaction button opening `TransactionModal`.
 - `TransactionModal`: Modal with Amount, Type (Income/Expense), Category dropdown, Account/Wallet dropdown (including Cash, Bank, Wallet, or Savings), Note, Date (defaults to today), and Recurring toggle.
 
-- [ ] **Step 1: Implement `SummaryCard.jsx` and `BudgetProgressBar.jsx`**
+- [x] **Step 1: Implement `SummaryCard.jsx` and `BudgetProgressBar.jsx`**
 Progress bar changes color: Green (<50%), Blue (50-89%), Orange (90-99%), Red (>=100% exceeded) with descriptive alert text.
-- [ ] **Step 2: Implement `TransactionModal.jsx`**
+- [x] **Step 2: Implement `TransactionModal.jsx`**
 Modal supporting both Add and Edit modes. Contains explicit Account selector so user can choose to spend from Wallet vs Savings.
-- [ ] **Step 3: Implement `DashboardPage.jsx`**
+- [x] **Step 3: Implement `DashboardPage.jsx`**
 Assemble overview cards, budget bar, quick add button, and recent transactions table.
 
 ---
