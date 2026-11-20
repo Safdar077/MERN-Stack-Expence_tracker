@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { FaPlus, FaExchangeAlt } from 'react-icons/fa';
 import { useAuth } from '../hooks/useAuth.js';
 import { useAccounts } from '../hooks/useAccounts.js';
@@ -104,6 +104,14 @@ const TransactionsPage = () => {
     exportCSV,
   } = useTransactions(queryParams);
 
+  // Synchronize and clamp page index if totalPages drops below current page
+  // (e.g. after deleting the last transaction on the last page)
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   // ---------------------------------------------------------------------------
   // 3. MODAL & ACTION STATES
   // ---------------------------------------------------------------------------
@@ -127,17 +135,30 @@ const TransactionsPage = () => {
 
   /**
    * Updates a single filter field and resets the page view back to page 1.
+   * If switching transaction type and currently selected categoryId is incompatible, resets categoryId.
    *
    * @param {string} key - Filter property name
    * @param {string|number} value - New filter value
    */
   const handleFilterChange = useCallback((key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setFilters((prev) => {
+      const updated = {
+        ...prev,
+        [key]: value,
+      };
+
+      // Clear stale category selection when switching transaction type
+      if (key === 'type' && value && prev.categoryId) {
+        const matchingCategory = categories?.find((c) => c._id === prev.categoryId);
+        if (matchingCategory && matchingCategory.type !== value) {
+          updated.categoryId = '';
+        }
+      }
+
+      return updated;
+    });
     setPage(1);
-  }, []);
+  }, [categories]);
 
   /**
    * Resets all search and filter fields back to default empty state.

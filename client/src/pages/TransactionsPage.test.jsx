@@ -195,4 +195,59 @@ describe('TransactionsPage Component', () => {
     expect(lastPageCall.page).toBe(1);
     expect(lastPageCall.search).toBeUndefined();
   });
+
+  it('clamps page index to totalPages when totalPages drops below current page', async () => {
+    let mockTotalPages = 3;
+    vi.spyOn(transactionsHook, 'useTransactions').mockImplementation((filters = {}) => ({
+      transactions: mockTransactions,
+      totalCount: 30,
+      page: filters.page || 1,
+      totalPages: mockTotalPages,
+      loading: false,
+      error: null,
+      fetchTransactions: mockFetchTransactions,
+      addTransaction: mockAddTransaction,
+      editTransaction: mockEditTransaction,
+      deleteTransaction: mockDeleteTransaction,
+      exportCSV: mockExportCSV,
+    }));
+
+    const { rerender } = render(<TransactionsPage />);
+
+    // Navigate to page 3
+    const nextBtn = screen.getByRole('button', { name: /next page/i });
+    fireEvent.click(nextBtn); // to page 2
+    fireEvent.click(nextBtn); // to page 3
+
+    // Simulate totalPages dropping to 2 (e.g. after deleting last item)
+    mockTotalPages = 2;
+    rerender(<TransactionsPage />);
+
+    await waitFor(() => {
+      const pageCalls = transactionsHook.useTransactions.mock.calls.filter(
+        (args) => args[0] && typeof args[0] === 'object' && 'limit' in args[0]
+      );
+      const lastPageCall = pageCalls.at(-1)[0];
+      expect(lastPageCall.page).toBe(2);
+    });
+  });
+
+  it('clears incompatible categoryId when type filter is changed', () => {
+    render(<TransactionsPage />);
+
+    // Select category 'cat1' (Expense)
+    const catSelect = screen.getByLabelText(/^category$/i);
+    fireEvent.change(catSelect, { target: { value: 'cat1' } });
+
+    // Switch type to 'Income'
+    const typeSelect = screen.getByLabelText(/transaction type/i);
+    fireEvent.change(typeSelect, { target: { value: 'Income' } });
+
+    const pageCalls = transactionsHook.useTransactions.mock.calls.filter(
+      (args) => args[0] && typeof args[0] === 'object' && 'limit' in args[0]
+    );
+    const lastPageCall = pageCalls.at(-1)[0];
+    expect(lastPageCall.type).toBe('Income');
+    expect(lastPageCall.categoryId).toBeUndefined();
+  });
 });

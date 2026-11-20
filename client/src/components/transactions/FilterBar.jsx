@@ -64,16 +64,36 @@ const FilterBar = ({
 
   /**
    * Dispatches filter change to parent component using either `onFilterChange` or `onChange`.
+   * Clears category selection if switching transaction type makes active category incompatible.
    *
    * @param {string} key - Filter property name
    * @param {string|number} value - New filter value
    */
   const handleInputChange = (key, value) => {
+    let resetCategory = false;
+    if (key === 'type' && filters.categoryId) {
+      if (value) {
+        const currentCat = availableCategories.find((cat) => cat._id === filters.categoryId);
+        if (currentCat && currentCat.type !== value) {
+          resetCategory = true;
+        }
+      }
+    }
+
+    if (resetCategory && typeof onFilterChange === 'function') {
+      onFilterChange('categoryId', '');
+    }
+
     if (typeof onFilterChange === 'function') {
       onFilterChange(key, value);
     }
+
     if (typeof onChange === 'function') {
-      onChange({ ...filters, [key]: value });
+      const updated = { ...filters, [key]: value };
+      if (resetCategory) {
+        updated.categoryId = '';
+      }
+      onChange(updated);
     }
   };
 

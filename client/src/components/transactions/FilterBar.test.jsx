@@ -123,6 +123,24 @@ describe('FilterBar Component', () => {
     expect(screen.queryByRole('option', { name: 'Groceries' })).not.toBeInTheDocument();
   });
 
+  it('clears categoryId when switching to a type incompatible with current category', () => {
+    // cat1 is an Expense category ('Groceries')
+    render(
+      <FilterBar
+        filters={{ type: 'Expense', categoryId: 'cat1' }}
+        onFilterChange={mockFilterChange}
+        onReset={mockReset}
+        onExport={mockExport}
+      />
+    );
+
+    const typeSelect = screen.getByLabelText(/transaction type/i);
+    fireEvent.change(typeSelect, { target: { value: 'Income' } });
+
+    expect(mockFilterChange).toHaveBeenCalledWith('categoryId', '');
+    expect(mockFilterChange).toHaveBeenCalledWith('type', 'Income');
+  });
+
   it('triggers onFilterChange when category or account dropdown is selected', () => {
     render(
       <FilterBar
