@@ -15,6 +15,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const authRoutes = require('./routes/authRoutes');
+const accountRoutes = require('./routes/accountRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // Initialize the Express application
@@ -76,6 +78,20 @@ app.get('/api/health', (req, res) => {
  * Handles user registration, authentication (login), and profile retrieval (/me).
  */
 app.use('/api/auth', authRoutes);
+
+/**
+ * Account Routes
+ * Route: /api/accounts
+ * Handles creation, retrieval, updates, and deletion of user financial accounts.
+ */
+app.use('/api/accounts', accountRoutes);
+
+/**
+ * Category Routes
+ * Route: /api/categories
+ * Handles default category seeding, retrieval, and custom category creation.
+ */
+app.use('/api/categories', categoryRoutes);
 
 /**
  * 404 Route Not Found Middleware

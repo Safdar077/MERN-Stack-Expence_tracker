@@ -43,9 +43,9 @@ const registerUser = async (req, res, next) => {
 
     // Seed default starter accounts for the new user
     const defaultAccounts = [
-      { userId: user._id, name: 'Cash', type: 'Cash', balance: 0 },
-      { userId: user._id, name: 'Main Bank', type: 'Bank', balance: 0 },
-      { userId: user._id, name: 'Savings', type: 'Savings', balance: 0 },
+      { userId: user._id, name: 'Cash', type: 'Cash', balance: 0, isDefault: true },
+      { userId: user._id, name: 'Main Bank', type: 'Bank Account', balance: 0, isDefault: false },
+      { userId: user._id, name: 'Savings', type: 'Savings', balance: 0, isDefault: false },
     ];
     await Account.insertMany(defaultAccounts);
 
