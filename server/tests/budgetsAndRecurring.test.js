@@ -280,6 +280,38 @@ describe('Budgets, Savings Goals & Recurring Rules API', () => {
       expect(currentRes.body.warnings.length).toBeGreaterThanOrEqual(2);
     });
 
+    it('should reject budget creation with duplicate categoryId in categoryLimits', async () => {
+      const res = await request(app)
+        .post('/api/budgets')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          overallAmount: 1000,
+          categoryLimits: [
+            { categoryId: foodCategory._id.toString(), amount: 200 },
+            { categoryId: foodCategory._id.toString(), amount: 300 },
+          ],
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/duplicate categories/i);
+    });
+
+    it('should gracefully handle invalid month/year query parameters with fallback to current date', async () => {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+
+      const res = await request(app)
+        .get('/api/budgets/current?month=invalid&year=99999')
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.month).toBe(currentMonth);
+      expect(res.body.year).toBe(currentYear);
+    });
+
     it('should isolate budgets between User A and User B', async () => {
       const now = new Date();
       await request(app)
@@ -397,6 +429,31 @@ describe('Budgets, Savings Goals & Recurring Rules API', () => {
       expect(completeRes.body.goal.currentAmount).toBe(1000);
       expect(completeRes.body.goal.progress).toBe(100);
       expect(completeRes.body.goal.isCompleted).toBe(true);
+    });
+
+    it('should reset isCompleted to false when targetAmount is increased via update', async () => {
+      const goal = await SavingsGoal.create({
+        userId: userAId,
+        title: 'Tech Upgrade',
+        targetAmount: 500,
+        currentAmount: 500,
+        targetDate: new Date(),
+        isCompleted: true,
+      });
+
+      const updateRes = await request(app)
+        .put(`/api/goals/${goal._id}`)
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          targetAmount: 1000,
+        });
+
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.success).toBe(true);
+      expect(updateRes.body.goal.targetAmount).toBe(1000);
+      expect(updateRes.body.goal.currentAmount).toBe(500);
+      expect(updateRes.body.goal.progress).toBe(50);
+      expect(updateRes.body.goal.isCompleted).toBe(false);
     });
 
     it('should prevent User B from contributing to User A goal or using User A account', async () => {
@@ -627,6 +684,65 @@ describe('Budgets, Savings Goals & Recurring Rules API', () => {
         .set('Authorization', `Bearer ${userAToken}`);
       const refreshedYearly = await RecurringRule.findById(yearlyRule._id);
       expect(new Date(refreshedYearly.nextDueDate).getFullYear()).toBe(2027);
+    });
+
+    it('should set nextDueDate to today when created on its due day', async () => {
+      const today = new Date().getDate();
+
+      const res = await request(app)
+        .post('/api/recurring')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          title: 'Due Today Subscription',
+          amount: 25,
+          type: 'Expense',
+          categoryId: foodCategory._id.toString(),
+          accountId: userAAccount._id.toString(),
+          frequency: 'Monthly',
+          dueDay: today,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      const dueDate = new Date(res.body.recurringRule.nextDueDate);
+      expect(dueDate.getDate()).toBe(today);
+      expect(dueDate.getMonth()).toBe(new Date().getMonth());
+    });
+
+    it('should clamp month-end rollover in advanceDueDate without date drifting', async () => {
+      // Create a Monthly rule due on Jan 31, 2026 with dueDay 31
+      const jan31 = new Date(2026, 0, 31);
+      const rule = await RecurringRule.create({
+        userId: userAId,
+        title: 'Month-End Clamped Bill',
+        amount: 100,
+        type: 'Expense',
+        categoryId: rentCategory._id,
+        accountId: userAAccount._id,
+        frequency: 'Monthly',
+        dueDay: 31,
+        nextDueDate: jan31,
+      });
+
+      // Pay Jan 31 -> advances to Feb 28 (non-leap year 2026)
+      await request(app)
+        .post(`/api/recurring/${rule._id}/pay`)
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      const febRule = await RecurringRule.findById(rule._id);
+      const febDate = new Date(febRule.nextDueDate);
+      expect(febDate.getMonth()).toBe(1); // February
+      expect(febDate.getDate()).toBe(28);
+
+      // Pay Feb 28 -> advances back to March 31 without drifting into April
+      await request(app)
+        .post(`/api/recurring/${rule._id}/pay`)
+        .set('Authorization', `Bearer ${userAToken}`);
+
+      const marRule = await RecurringRule.findById(rule._id);
+      const marDate = new Date(marRule.nextDueDate);
+      expect(marDate.getMonth()).toBe(2); // March
+      expect(marDate.getDate()).toBe(31);
     });
 
     it('should isolate recurring rules: User B cannot pay or manipulate User A recurring rule', async () => {

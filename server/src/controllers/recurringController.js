@@ -18,11 +18,15 @@ const Category = require('../models/Category');
 /**
  * Advances a due date by one recurrence frequency interval using native JavaScript Date math.
  * 
+ * Handles month-end date clamping (e.g., Jan 31 -> Feb 28/29) using target dueDay
+ * so recurrence does not permanently drift forward into subsequent months.
+ * 
  * @param {Date|string} currentDate - The current due date
  * @param {'Daily'|'Weekly'|'Monthly'|'Yearly'} frequency - Recurrence frequency
+ * @param {number} [dueDay] - Optional specific day of month (1-31) to anchor monthly recurrence
  * @returns {Date} Calculated next due date
  */
-const advanceDueDate = (currentDate, frequency) => {
+const advanceDueDate = (currentDate, frequency, dueDay) => {
   const nextDate = new Date(currentDate);
 
   switch (frequency) {
@@ -32,9 +36,14 @@ const advanceDueDate = (currentDate, frequency) => {
     case 'Weekly':
       nextDate.setDate(nextDate.getDate() + 7);
       break;
-    case 'Monthly':
+    case 'Monthly': {
+      const targetDay = dueDay || nextDate.getDate();
+      nextDate.setDate(1);
       nextDate.setMonth(nextDate.getMonth() + 1);
+      const daysInMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(targetDay, daysInMonth));
       break;
+    }
     case 'Yearly':
       nextDate.setFullYear(nextDate.getFullYear() + 1);
       break;
@@ -170,7 +179,7 @@ const createRecurringRule = async (req, res, next) => {
     if (!nextDueDate && frequency === 'Monthly' && dueDay) {
       const now = new Date();
       calculatedDueDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
-      if (calculatedDueDate < now) {
+      if (dueDay < now.getDate()) {
         calculatedDueDate.setMonth(calculatedDueDate.getMonth() + 1);
       }
     }
@@ -263,8 +272,8 @@ const payRecurringRule = async (req, res, next) => {
     await account.save();
     await transaction.save();
 
-    // 3. Advance nextDueDate using native JavaScript Date math
-    rule.nextDueDate = advanceDueDate(rule.nextDueDate, rule.frequency);
+    // 3. Advance nextDueDate using native JavaScript Date math (with target dueDay clamping)
+    rule.nextDueDate = advanceDueDate(rule.nextDueDate, rule.frequency, rule.dueDay);
     await rule.save();
 
     await transaction.populate([

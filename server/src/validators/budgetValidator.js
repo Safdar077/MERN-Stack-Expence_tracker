@@ -41,7 +41,24 @@ const setBudgetSchema = z.object({
     )
     .optional()
     .default([]),
-});
+})
+.refine(
+  (data) => {
+    if (!data.categoryLimits || data.categoryLimits.length <= 1) return true;
+    const seenCategories = new Set();
+    for (const item of data.categoryLimits) {
+      if (seenCategories.has(item.categoryId)) {
+        return false;
+      }
+      seenCategories.add(item.categoryId);
+    }
+    return true;
+  },
+  {
+    message: 'Category limits must not contain duplicate categories',
+    path: ['categoryLimits'],
+  }
+);
 
 module.exports = {
   setBudgetSchema,

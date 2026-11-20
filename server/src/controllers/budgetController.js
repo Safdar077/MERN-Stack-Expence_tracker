@@ -85,8 +85,15 @@ const computeThreshold = (spent, limit, label = 'budget') => {
 const getCurrentBudget = async (req, res, next) => {
   try {
     const now = new Date();
-    const month = req.query.month ? parseInt(req.query.month, 10) : now.getMonth() + 1;
-    const year = req.query.year ? parseInt(req.query.year, 10) : now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const parsedMonth = parseInt(req.query.month, 10);
+    const parsedYear = parseInt(req.query.year, 10);
+
+    // Validate query parameters; gracefully fall back to current month and year if missing or out-of-range
+    const month = !isNaN(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : currentMonth;
+    const year = !isNaN(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : currentYear;
 
     // Calculate month boundary dates
     const startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);

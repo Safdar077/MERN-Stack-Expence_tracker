@@ -247,8 +247,10 @@ const updateGoal = async (req, res, next) => {
     if (targetDate !== undefined) goal.targetDate = targetDate;
     if (isCompleted !== undefined) {
       goal.isCompleted = isCompleted;
-    } else if (goal.currentAmount >= goal.targetAmount) {
-      goal.isCompleted = true;
+    } else {
+      // Automatically recalculate completion based on updated current vs target amount
+      // (e.g., increasing targetAmount resets a previously completed goal to in-progress)
+      goal.isCompleted = goal.currentAmount >= goal.targetAmount;
     }
 
     await goal.save();
