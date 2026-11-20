@@ -17,6 +17,7 @@ const helmet = require('helmet');
 const authRoutes = require('./routes/authRoutes');
 const accountRoutes = require('./routes/accountRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // Initialize the Express application
@@ -92,6 +93,13 @@ app.use('/api/accounts', accountRoutes);
  * Handles default category seeding, retrieval, and custom category creation.
  */
 app.use('/api/categories', categoryRoutes);
+
+/**
+ * Transaction Routes
+ * Route: /api/transactions
+ * Handles CRUD operations, balance synchronization, filtering, pagination, and CSV export.
+ */
+app.use('/api/transactions', transactionRoutes);
 
 /**
  * 404 Route Not Found Middleware
