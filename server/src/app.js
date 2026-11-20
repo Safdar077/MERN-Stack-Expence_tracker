@@ -21,6 +21,7 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const goalRoutes = require('./routes/goalRoutes');
 const recurringRoutes = require('./routes/recurringRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // Initialize the Express application
@@ -124,6 +125,13 @@ app.use('/api/goals', goalRoutes);
  * Handles recurring income/expense rules, upcoming due item tracking via Date math, and "mark as paid" transactions.
  */
 app.use('/api/recurring', recurringRoutes);
+
+/**
+ * Analytics Routes
+ * Route: /api/analytics
+ * Handles dynamic aggregation for overview metrics, category breakdown, and spending trends.
+ */
+app.use('/api/analytics', analyticsRoutes);
 
 /**
  * 404 Route Not Found Middleware
