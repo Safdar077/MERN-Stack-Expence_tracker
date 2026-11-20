@@ -29,6 +29,9 @@ const createTransactionSchema = z.object({
   date: z
     .union([z.string(), z.date()])
     .optional()
+    .refine((val) => val === undefined || !isNaN(new Date(val).getTime()), {
+      message: 'Invalid date format',
+    })
     .transform((val) => (val ? new Date(val) : new Date())),
   note: z
     .string()
@@ -56,6 +59,9 @@ const updateTransactionSchema = z.object({
   date: z
     .union([z.string(), z.date()])
     .optional()
+    .refine((val) => val === undefined || !isNaN(new Date(val).getTime()), {
+      message: 'Invalid date format',
+    })
     .transform((val) => (val ? new Date(val) : undefined)),
   note: z.string().trim().max(500, 'Note cannot exceed 500 characters').optional(),
   attachmentUrl: z.string().trim().optional(),

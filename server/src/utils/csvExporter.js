@@ -8,6 +8,7 @@
 /**
  * Escapes a field for CSV output:
  * - Null or undefined values become empty string
+ * - String fields starting with formula triggers (=, +, -, @) are prepended with ' (Formula Injection hardening)
  * - Fields containing quotes, commas, or newlines are wrapped in double quotes
  * - Double quotes inside fields are escaped as ""
  * 
@@ -18,7 +19,13 @@ const escapeCSVField = (value) => {
   if (value === null || value === undefined) {
     return '';
   }
-  const str = String(value);
+  let str = String(value);
+
+  // Harden against CSV / Spreadsheet formula injection for text values
+  if (typeof value === 'string' && /^[=+\-@]/.test(str)) {
+    str = `'${str}`;
+  }
+
   if (/[",\r\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

@@ -41,25 +41,41 @@ const buildTransactionFilter = (query, userId) => {
   }
 
   // Date range filter
-  if (query.startDate || query.endDate) {
-    filter.date = {};
-    if (query.startDate) {
-      filter.date.$gte = new Date(query.startDate);
+  if ((query.startDate && query.startDate !== '') || (query.endDate && query.endDate !== '')) {
+    if (query.startDate && query.startDate !== '') {
+      const start = new Date(query.startDate);
+      if (!isNaN(start.getTime())) {
+        filter.date = filter.date || {};
+        filter.date.$gte = start;
+      }
     }
-    if (query.endDate) {
-      filter.date.$lte = new Date(query.endDate);
+
+    if (query.endDate && query.endDate !== '') {
+      const end = new Date(query.endDate);
+      if (!isNaN(end.getTime())) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(query.endDate.trim())) {
+          end.setUTCHours(23, 59, 59, 999);
+        }
+        filter.date = filter.date || {};
+        filter.date.$lte = end;
+      }
     }
   }
 
-  // Amount range filter
-  if (query.minAmount !== undefined || query.maxAmount !== undefined) {
+  // Amount range filter with safe empty query parameter handling
+  const hasMin =
+    query.minAmount !== undefined &&
+    query.minAmount !== '' &&
+    !isNaN(Number(query.minAmount));
+  const hasMax =
+    query.maxAmount !== undefined &&
+    query.maxAmount !== '' &&
+    !isNaN(Number(query.maxAmount));
+
+  if (hasMin || hasMax) {
     filter.amount = {};
-    if (query.minAmount !== undefined && query.minAmount !== '') {
-      filter.amount.$gte = Number(query.minAmount);
-    }
-    if (query.maxAmount !== undefined && query.maxAmount !== '') {
-      filter.amount.$lte = Number(query.maxAmount);
-    }
+    if (hasMin) filter.amount.$gte = Number(query.minAmount);
+    if (hasMax) filter.amount.$lte = Number(query.maxAmount);
   }
 
   // Note text search with escaped regex
@@ -116,19 +132,9 @@ const createTransaction = async (req, res, next) => {
       });
     }
 
-    // Balance Synchronization:
-    // Expense decrements chosen account balance; Income increments account balance.
-    // Daily Wallet/Cash balances remain untouched when spending from Savings.
-    if (type === 'Expense') {
-      account.balance -= amount;
-    } else {
-      account.balance += amount;
-    }
-    account.balance = Math.round(account.balance * 100) / 100;
-    await account.save();
-
-    // Create the transaction
-    const transaction = await Transaction.create({
+    // Prepare transaction document and pre-validate against schema constraints
+    // before modifying account balance, ensuring balance consistency
+    const transaction = new Transaction({
       userId: req.user._id,
       accountId,
       categoryId,
@@ -140,6 +146,21 @@ const createTransaction = async (req, res, next) => {
       isRecurring: Boolean(isRecurring),
       recurringRuleId: recurringRuleId || null,
     });
+
+    await transaction.validate();
+
+    // Balance Synchronization:
+    // Expense decrements chosen account balance; Income increments account balance.
+    // Daily Wallet/Cash balances remain untouched when spending from Savings.
+    if (type === 'Expense') {
+      account.balance -= amount;
+    } else {
+      account.balance += amount;
+    }
+    account.balance = Math.round(account.balance * 100) / 100;
+    await account.save();
+
+    await transaction.save();
 
     await transaction.populate([
       { path: 'accountId', select: 'name type' },
@@ -430,7 +451,8 @@ const exportTransactionsCSV = async (req, res, next) => {
     const transactions = await Transaction.find(filter)
       .populate('accountId', 'name')
       .populate('categoryId', 'name')
-      .sort({ date: -1, createdAt: -1 });
+      .sort({ date: -1, createdAt: -1 })
+      .lean();
 
     const csvData = exportTransactionsToCSV(transactions);
 

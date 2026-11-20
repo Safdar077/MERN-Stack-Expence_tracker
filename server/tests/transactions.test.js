@@ -156,6 +156,21 @@ describe('Transactions API Endpoints (/api/transactions)', () => {
       expect(res.body.success).toBe(false);
     });
 
+    it('should return 400 when date format is invalid', async () => {
+      const res = await request(app)
+        .post('/api/transactions')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          amount: 50,
+          type: 'Expense',
+          categoryId: foodCategory._id,
+          accountId: walletAccount._id,
+          date: 'not-a-valid-date',
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
     it('should return 404 when account does not exist or belongs to another user', async () => {
       const fakeId = new mongoose.Types.ObjectId();
       const res = await request(app)
@@ -490,6 +505,25 @@ describe('Transactions API Endpoints (/api/transactions)', () => {
       expect(res.body.total).toBe(3); // 2026-02-01, 2026-02-05, 2026-02-15
     });
 
+    it('should handle empty minAmount and maxAmount query parameters without returning zero records', async () => {
+      const res = await request(app)
+        .get('/api/transactions?minAmount=&maxAmount=')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(6);
+    });
+
+    it('should include transactions occurring on the end date when endDate is YYYY-MM-DD', async () => {
+      // 2026-02-15T15:00:00Z should be included in endDate=2026-02-15
+      const res = await request(app)
+        .get('/api/transactions?startDate=2026-02-01&endDate=2026-02-15')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(3); // 2026-02-01, 2026-02-05, 2026-02-15
+    });
+
     it('should filter transactions by minAmount and maxAmount', async () => {
       const res = await request(app)
         .get('/api/transactions?minAmount=100&maxAmount=1000')
@@ -578,6 +612,25 @@ describe('Transactions API Endpoints (/api/transactions)', () => {
 
       // Escaping check: quotes and commas in 'Groceries, apples & "fresh" oranges'
       expect(res.text).toContain('"Groceries, apples & ""fresh"" oranges"');
+    });
+
+    it('should harden against CSV formula injection by prepending single quote to triggered fields', async () => {
+      await Transaction.create({
+        userId,
+        amount: 10,
+        type: 'Expense',
+        categoryId: foodCategory._id,
+        accountId: walletAccount._id,
+        note: '=SUM(A1:A10)',
+        date: new Date('2026-03-20'),
+      });
+
+      const res = await request(app)
+        .get('/api/transactions/export')
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.text).toContain("'=SUM(A1:A10)");
     });
 
     it('should apply active query filters when exporting CSV', async () => {
