@@ -36,4 +36,25 @@ describe('eventBus', () => {
     emitSync('budget:alert', { percent: 90 });
     expect(callback).toHaveBeenCalledTimes(1); // not called again
   });
+
+  it('isolates subscriber errors so other subscribers still receive events', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const throwingCallback = vi.fn().mockImplementation(() => {
+      throw new Error('Subscriber failed');
+    });
+    const healthyCallback = vi.fn();
+
+    const unsub1 = onSync(throwingCallback);
+    const unsub2 = onSync(healthyCallback);
+
+    emitSync('goal:updated', { id: 'g-1' });
+
+    expect(throwingCallback).toHaveBeenCalledTimes(1);
+    expect(healthyCallback).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalled();
+
+    unsub1();
+    unsub2();
+    errorSpy.mockRestore();
+  });
 });

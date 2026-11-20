@@ -4,11 +4,11 @@ import axios from 'axios';
  * Pre-configured Axios client instance for Expense Tracker API requests.
  *
  * Base configuration:
- * - baseURL: '/api' (proxied by Vite to http://localhost:5050 in development)
+ * - baseURL: import.meta.env?.VITE_API_BASE_URL || '/api' (proxied by Vite to http://localhost:5050 in development)
  * - headers: application/json default
  */
 const axiosClient = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env?.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -55,8 +55,11 @@ axiosClient.interceptors.response.use(
         // Ignore localStorage cleanup failures in SSR/test
       }
 
-      if (typeof window !== 'undefined' && window.location && window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (typeof window !== 'undefined' && window.location) {
+        const isPublicAuthRoute = ['/login', '/register'].includes(window.location.pathname);
+        if (!isPublicAuthRoute) {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

@@ -43,7 +43,11 @@ export const onSync = (callback) => {
 
   const handler = (event) => {
     if (typeof callback === 'function') {
-      callback(event.detail);
+      try {
+        callback(event.detail);
+      } catch (err) {
+        console.error('[EventBus] Error executing subscriber callback:', err);
+      }
     }
   };
 
