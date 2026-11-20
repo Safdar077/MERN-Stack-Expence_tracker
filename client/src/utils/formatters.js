@@ -82,3 +82,69 @@ export const formatDate = (dateInput) => {
     year: 'numeric',
   });
 };
+
+/**
+ * Calculates the next due date by advancing a base date by a recurring frequency interval.
+ * Uses exact calendar math with month-end and leap-year clamping.
+ *
+ * @param {string|Date} currentDate - ISO string, YYYY-MM-DD string, or Date instance
+ * @param {'Daily'|'Weekly'|'Monthly'|'Yearly'} [frequency='Monthly'] - Recurrence frequency
+ * @returns {string} Next due date formatted as YYYY-MM-DD
+ */
+export const calculateNextDueDate = (currentDate, frequency = 'Monthly') => {
+  if (!currentDate) return '';
+
+  let year, month, day;
+  if (typeof currentDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(currentDate)) {
+    const parts = currentDate.split('T')[0].split('-').map(Number);
+    year = parts[0];
+    month = parts[1] - 1; // 0-indexed month
+    day = parts[2];
+  } else {
+    const d = new Date(currentDate);
+    if (isNaN(d.getTime())) return '';
+    year = d.getFullYear();
+    month = d.getMonth();
+    day = d.getDate();
+  }
+
+  const nextDate = new Date(year, month, day);
+
+  switch (frequency) {
+    case 'Daily':
+      nextDate.setDate(nextDate.getDate() + 1);
+      break;
+    case 'Weekly':
+      nextDate.setDate(nextDate.getDate() + 7);
+      break;
+    case 'Monthly': {
+      const targetDay = day;
+      nextDate.setDate(1);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      const daysInMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(targetDay, daysInMonth));
+      break;
+    }
+    case 'Yearly': {
+      const targetDay = day;
+      nextDate.setDate(1);
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+      const daysInMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(targetDay, daysInMonth));
+      break;
+    }
+    default: {
+      const targetDay = day;
+      nextDate.setDate(1);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      const daysInMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(targetDay, daysInMonth));
+      break;
+    }
+  }
+
+  const y = nextDate.getFullYear();
+  const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+  const d = String(nextDate.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};

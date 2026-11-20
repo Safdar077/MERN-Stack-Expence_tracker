@@ -188,12 +188,13 @@ describe('TransactionModal Component', () => {
     expect(mockClose).toHaveBeenCalled();
   });
 
-  it('reveals frequency selector when recurring checkbox is checked and calls addRecurring', async () => {
+  it('reveals frequency selector when recurring checkbox is checked and calls addRecurring with advanced nextDueDate', async () => {
     render(<TransactionModal isOpen={true} onClose={mockClose} onSuccess={mockSuccess} />);
 
     fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '15' } });
     fireEvent.change(screen.getByLabelText(/category/i), { target: { value: 'cat1' } });
     fireEvent.change(screen.getByLabelText(/account \/ wallet/i), { target: { value: 'acc1' } });
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: '2026-11-20' } });
     fireEvent.change(screen.getByLabelText(/note/i), { target: { value: 'Netflix Subscription' } });
 
     // Toggle recurring
@@ -209,6 +210,7 @@ describe('TransactionModal Component', () => {
       expect(mockAddTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           isRecurring: true,
+          date: '2026-11-20',
         })
       );
       expect(mockAddRecurring).toHaveBeenCalledWith(
@@ -216,9 +218,36 @@ describe('TransactionModal Component', () => {
           title: 'Netflix Subscription',
           frequency: 'Monthly',
           amount: 15,
+          startDate: '2026-11-20',
+          nextDueDate: '2026-12-20',
         })
       );
     });
+  });
+
+  it('preserves entered form inputs when background accounts or categories hook re-renders', () => {
+    const { rerender } = render(<TransactionModal isOpen={true} onClose={mockClose} />);
+
+    fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '99.99' } });
+    fireEvent.change(screen.getByLabelText(/note/i), { target: { value: 'Important expense in progress' } });
+
+    expect(screen.getByLabelText(/amount/i)).toHaveValue(99.99);
+    expect(screen.getByLabelText(/note/i)).toHaveValue('Important expense in progress');
+
+    // Simulate background accounts hook updating (e.g. fresh array from network or event bus)
+    vi.spyOn(accountsHook, 'useAccounts').mockReturnValue({
+      accounts: [
+        ...mockAccounts,
+        { _id: 'acc4', name: 'Emergency Fund', type: 'Savings', balance: 5000 },
+      ],
+      loading: false,
+    });
+
+    rerender(<TransactionModal isOpen={true} onClose={mockClose} />);
+
+    // Assert inputs are NOT wiped
+    expect(screen.getByLabelText(/amount/i)).toHaveValue(99.99);
+    expect(screen.getByLabelText(/note/i)).toHaveValue('Important expense in progress');
   });
 
   it('closes on Close button, Cancel button, and Escape key', () => {

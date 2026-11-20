@@ -13,6 +13,7 @@ import { useCategories } from '../../hooks/useCategories.js';
 import { useAccounts } from '../../hooks/useAccounts.js';
 import { useTransactions } from '../../hooks/useTransactions.js';
 import { useRecurring } from '../../hooks/useRecurring.js';
+import { calculateNextDueDate } from '../../utils/formatters.js';
 
 /**
  * TransactionModal Component
@@ -79,7 +80,7 @@ const TransactionModal = ({
   const [serverError, setServerError] = useState(null);
 
   // ---------------------------------------------------------------------------
-  // 2. FORM INITIALIZATION & RESET ON OPEN / PROPS CHANGE
+  // 2. FORM INITIALIZATION & RESET ON OPEN / ACTIVE TRANSACTION CHANGE
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!isOpen) return;
@@ -115,25 +116,30 @@ const TransactionModal = ({
       setNote('');
       setIsRecurring(false);
       setFrequency('Monthly');
-
-      // Auto-select first account if available
-      if (accounts && accounts.length > 0) {
-        setAccountId(accounts[0]._id);
-      } else {
-        setAccountId('');
-      }
-
-      // Auto-select first expense category if available
-      if (expenseCategories && expenseCategories.length > 0) {
-        setCategoryId(expenseCategories[0]._id);
-      } else {
-        setCategoryId('');
-      }
+      setAccountId(accounts?.[0]?._id || '');
+      setCategoryId(expenseCategories?.[0]?._id || '');
     }
 
     setErrors({});
     setServerError(null);
-  }, [isOpen, activeTx, accounts, expenseCategories]);
+  }, [isOpen, activeTx]); // Only reset on modal visibility/activeTx change
+
+  // Populate default account if empty when accounts finish loading asynchronously
+  useEffect(() => {
+    if (isOpen && !isEditMode && !accountId && accounts && accounts.length > 0) {
+      setAccountId(accounts[0]._id);
+    }
+  }, [isOpen, isEditMode, accountId, accounts]);
+
+  // Populate default category if empty when categories finish loading asynchronously
+  useEffect(() => {
+    if (isOpen && !isEditMode && !categoryId) {
+      const activeList = type === 'Income' ? incomeCategories : expenseCategories;
+      if (activeList && activeList.length > 0) {
+        setCategoryId(activeList[0]._id);
+      }
+    }
+  }, [isOpen, isEditMode, categoryId, type, incomeCategories, expenseCategories]);
 
   // When type changes (Expense <-> Income), auto-update category if current category belongs to old type
   const handleTypeChange = (newType) => {
@@ -240,6 +246,9 @@ const TransactionModal = ({
           const selectedCategory = categories.find((c) => c._id === categoryId);
           const recurringTitle = note.trim() || selectedCategory?.name || `${type} Schedule`;
 
+          // Advance nextDueDate by frequency interval so today's logged transaction is not immediately flagged due/overdue
+          const calculatedNextDueDate = calculateNextDueDate(date, frequency);
+
           await addRecurring({
             title: recurringTitle,
             name: recurringTitle,
@@ -249,7 +258,7 @@ const TransactionModal = ({
             accountId,
             frequency,
             startDate: date,
-            nextDueDate: date,
+            nextDueDate: calculatedNextDueDate,
           });
         }
       }
