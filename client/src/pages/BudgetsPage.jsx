@@ -508,6 +508,13 @@ const BudgetsPage = () => {
         selectedYear={selectedYear}
         currency={currency}
         updateBudget={updateBudget}
+        expenseCategories={expenseCategories}
+        onSuccess={(saved) => {
+          if (saved?.month && saved?.year) {
+            setSelectedMonth(saved.month);
+            setSelectedYear(saved.year);
+          }
+        }}
       />
     </div>
   );

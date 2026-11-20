@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaSpinner, FaCheck, FaExclamationCircle } from 'react-icons/fa';
-import { useAccounts } from '../../hooks/useAccounts.js';
 
 /**
  * Account Types supported by the application.
@@ -17,6 +16,7 @@ const ACCOUNT_TYPES = [
  * AccountModal Component
  *
  * Dedicated modal dialogue for creating new financial accounts or updating existing accounts.
+ * Controlled component relying on action callbacks passed from the parent view.
  *
  * Key Features:
  * 1. Dual Mode Operation: Automatically adapts to "Add Account" or "Edit Account" based on `initialData`.
@@ -27,7 +27,7 @@ const ACCOUNT_TYPES = [
  * 6. Inline Feedback: Displays loading spinners and server error messages clearly.
  *
  * Architectural Compliance:
- * - NO Redux, NO Context API — pure React useState and custom useAccounts hook.
+ * - NO Redux, NO Context API — pure controlled component with local useState.
  * - react-icons exclusively (no lucide-react).
  * - Beginner-friendly inline documentation.
  *
@@ -37,8 +37,8 @@ const ACCOUNT_TYPES = [
  * @param {Object|null} [props.initialData=null] - Existing account object for edit mode
  * @param {string} [props.currency='$'] - Currency symbol to display alongside balance input
  * @param {Function} [props.onSuccess] - Callback executed upon successful creation/update
- * @param {Function} [props.createAccount] - Optional mockable createAccount action
- * @param {Function} [props.updateAccount] - Optional mockable updateAccount action
+ * @param {Function} props.createAccount - Action invoked to create a new account
+ * @param {Function} props.updateAccount - Action invoked to update an existing account
  */
 const AccountModal = ({
   isOpen,
@@ -46,14 +46,9 @@ const AccountModal = ({
   initialData = null,
   currency = '$',
   onSuccess,
-  createAccount: propCreateAccount,
-  updateAccount: propUpdateAccount,
+  createAccount,
+  updateAccount,
 }) => {
-  // Use hook actions with fallback to props for flexible test mocking
-  const accountsHook = useAccounts();
-  const createAccount = propCreateAccount || accountsHook.createAccount;
-  const updateAccount = propUpdateAccount || accountsHook.updateAccount;
-
   // Form input states
   const [name, setName] = useState('');
   const [type, setType] = useState('Bank Account');
@@ -158,9 +153,13 @@ const AccountModal = ({
 
       let result;
       if (isEditMode) {
-        result = await updateAccount(initialData._id, payload);
+        result = updateAccount
+          ? await updateAccount(initialData._id, payload)
+          : { success: false, error: 'Update handler missing.' };
       } else {
-        result = await createAccount(payload);
+        result = createAccount
+          ? await createAccount(payload)
+          : { success: false, error: 'Create handler missing.' };
       }
 
       if (result && result.success) {

@@ -8,7 +8,6 @@ import {
   FaExclamationCircle,
 } from 'react-icons/fa';
 import { useCategories } from '../../hooks/useCategories.js';
-import { useBudgets } from '../../hooks/useBudgets.js';
 import CategoryIcon from '../transactions/CategoryIcon.jsx';
 
 // Month lookup table for human-friendly month names
@@ -31,7 +30,8 @@ const MONTH_NAMES = [
  * BudgetModal Component
  *
  * Dedicated modal dialogue for configuring overall monthly budget amounts and
- * setting per-category spending limits.
+ * setting per-category spending limits. Controlled component relying on action callbacks
+ * passed down from parent views.
  *
  * Key Capabilities:
  * 1. Month & Year Target Selection: Allows planning for future or inspecting past months.
@@ -41,7 +41,7 @@ const MONTH_NAMES = [
  * 5. Input Validation: Enforces non-negative numerical limits and clean payload formats.
  *
  * Strict Architectural Compliance:
- * - NO Redux, NO Context API — pure React state and useBudgets / useCategories custom hooks.
+ * - NO Redux, NO Context API — pure controlled component with local useState.
  * - react-icons exclusively (no lucide-react).
  * - Beginner-friendly inline documentation.
  *
@@ -53,7 +53,8 @@ const MONTH_NAMES = [
  * @param {number} [props.selectedYear] - Initial year integer (e.g. 2026)
  * @param {string} [props.currency='$'] - Currency symbol to display alongside inputs
  * @param {Function} [props.onSuccess] - Callback executed upon successful budget update
- * @param {Function} [props.updateBudget] - Optional mockable update action
+ * @param {Function} props.updateBudget - Action invoked to save budget settings
+ * @param {Array} [props.expenseCategories] - Optional expense categories passed from parent
  */
 const BudgetModal = ({
   isOpen,
@@ -63,16 +64,16 @@ const BudgetModal = ({
   selectedYear,
   currency = '$',
   onSuccess,
-  updateBudget: propUpdateBudget,
+  updateBudget,
+  expenseCategories: propExpenseCategories,
 }) => {
   const currentDate = new Date();
   const defaultMonth = selectedMonth || currentDate.getMonth() + 1;
   const defaultYear = selectedYear || currentDate.getFullYear();
 
-  // Custom hooks
-  const { expenseCategories = [] } = useCategories();
-  const budgetsHook = useBudgets();
-  const updateBudget = propUpdateBudget || budgetsHook.updateBudget;
+  // Custom categories hook fallback
+  const { expenseCategories: hookExpenseCategories = [] } = useCategories();
+  const expenseCategories = propExpenseCategories || hookExpenseCategories;
 
   // Form input states
   const [month, setMonth] = useState(defaultMonth);
@@ -208,11 +209,16 @@ const BudgetModal = ({
         categoryLimits,
       };
 
-      const result = await updateBudget(payload);
+      let result;
+      if (updateBudget) {
+        result = await updateBudget(payload);
+      } else {
+        result = { success: false, error: 'Budget update handler missing.' };
+      }
 
       if (result && result.success) {
         if (onSuccess) {
-          onSuccess(result.budget);
+          onSuccess(result.budget || payload);
         }
         onClose();
       } else {

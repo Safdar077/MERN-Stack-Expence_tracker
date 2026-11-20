@@ -168,6 +168,37 @@ describe('BudgetsPage Component', () => {
     expect(screen.getByTestId('budget-modal')).toBeInTheDocument();
   });
 
+  it('syncs selected month and year when BudgetModal saves a budget for a different month', async () => {
+    mockUpdateBudget.mockResolvedValueOnce({
+      success: true,
+      budget: { month: 8, year: 2026, overallAmount: 3000 },
+    });
+
+    renderWithRouter(<BudgetsPage />);
+
+    // Open modal
+    const editBtn = screen.getByTestId('set-budget-cta');
+    fireEvent.click(editBtn);
+
+    const modal = screen.getByTestId('budget-modal');
+
+    // Change month in modal to August (8)
+    const modalMonthSelect = modal.querySelector('#budget-month');
+    fireEvent.change(modalMonthSelect, {
+      target: { value: '8' },
+    });
+    fireEvent.change(screen.getByLabelText(/overall monthly budget/i), {
+      target: { value: '3000' },
+    });
+
+    const saveBtn = screen.getByRole('button', { name: /save budget/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('budget-month-select')).toHaveValue('8');
+    });
+  });
+
   it('renders clean empty state when no budget is configured for selected month', () => {
     vi.spyOn(budgetsHook, 'useBudgets').mockReturnValue({
       budget: null,
