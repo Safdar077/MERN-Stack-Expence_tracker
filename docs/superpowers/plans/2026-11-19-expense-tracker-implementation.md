@@ -426,9 +426,9 @@ Connect filter states to `useTransactions` hook so queries execute on the backen
 - `AccountsPage`: Lists all accounts (Cash, Bank Account, Credit Card, Wallet, Savings). Shows individual balances and combined total net worth. Includes "Add Account" modal.
 - `BudgetsPage`: Displays overall monthly budget progress bar and individual category budgets with independent progress bars and warning alerts. Includes "Set Budget" modal.
 
-- [ ] **Step 1: Implement `AccountCard.jsx`, `AccountModal.jsx`, and `AccountsPage.jsx`**
+- [x] **Step 1: Implement `AccountCard.jsx`, `AccountModal.jsx`, and `AccountsPage.jsx`**
 Highlight Savings account distinctly. Display balance formatting and edit/delete options.
-- [ ] **Step 2: Implement `BudgetModal.jsx` and `BudgetsPage.jsx`**
+- [x] **Step 2: Implement `BudgetModal.jsx` and `BudgetsPage.jsx`**
 Form to set monthly overall limit and per-category limits. Render progress cards with 50%, 90%, 100%, 100%+ warning badges.
 
 ---

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axiosClient from '../api/axiosClient.js';
 import { emitSync, onSync } from '../utils/eventBus.js';
 
@@ -61,19 +61,47 @@ export const useBudgets = () => {
   // Error message state
   const [error, setError] = useState(null);
 
+  // Tracks the last queried month & year to maintain context during EventBus refreshes
+  const lastParamsRef = useRef({ month: undefined, year: undefined });
+
   // ---------------------------------------------------------------------------
   // 2. DATA RETRIEVAL (GET /api/budgets/current)
   // ---------------------------------------------------------------------------
 
   /**
-   * Fetches current monthly budget, calculating live spending from transactions.
+   * Fetches current or specified monthly budget, calculating live spending from transactions.
+   *
+   * @param {number|Object} [queryMonth] - 1-based month integer (1-12) or params object { month, year }
+   * @param {number} [queryYear] - 4-digit year integer (e.g. 2026)
    */
-  const fetchBudget = useCallback(async () => {
+  const fetchBudget = useCallback(async (queryMonth, queryYear) => {
     setLoading(true);
     setError(null);
 
+    let m;
+    let y;
+    if (typeof queryMonth === 'object' && queryMonth !== null) {
+      m = queryMonth.month;
+      y = queryMonth.year;
+    } else {
+      m = queryMonth;
+      y = queryYear;
+    }
+
+    if (m !== undefined && y !== undefined) {
+      lastParamsRef.current = { month: m, year: y };
+    }
+
     try {
-      const response = await axiosClient.get('/budgets/current');
+      const config = {};
+      if (m !== undefined && y !== undefined) {
+        config.params = { month: m, year: y };
+      }
+
+      const response = config.params
+        ? await axiosClient.get('/budgets/current', config)
+        : await axiosClient.get('/budgets/current');
+
       const {
         budget: fetchedBudget = null,
         overall = {},
@@ -161,7 +189,7 @@ export const useBudgets = () => {
     const unsubscribe = onSync((detail) => {
       if (!detail) return;
       if (relevantEvents.includes(detail.type)) {
-        fetchBudget();
+        fetchBudget(lastParamsRef.current.month, lastParamsRef.current.year);
       }
     });
 
