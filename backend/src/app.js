@@ -36,21 +36,40 @@ app.use(helmet());
 
 /**
  * Cross-Origin Resource Sharing (CORS) Middleware
- * Configured to allow communication with frontend clients on port 5180 (both localhost and 127.0.0.1).
- * Port restrictions: Client must run on port 5180. Ports 3000, 5173, and 5022 are forbidden.
+ * Configured to allow communication with frontend clients on port 5180 (both localhost and 127.0.0.1)
+ * as well as the deployed CLIENT_URL and any *.onrender.com frontend deployment.
+ * Port restrictions: Client must run on port 5180 locally. Ports 3000, 5173, and 5022 are forbidden.
  * credentials: true allows HTTP cookies and authorization headers in cross-origin requests.
  */
 const allowedOrigins = [
-  ...new Set([
-    process.env.CLIENT_URL || 'http://localhost:5180',
-    'http://localhost:5180',
-    'http://127.0.0.1:5180',
-  ]),
+  'http://localhost:5180',
+  'http://127.0.0.1:5180',
 ];
+
+if (process.env.CLIENT_URL) {
+  const configured = process.env.CLIENT_URL.split(',').map((url) => url.trim().replace(/\/+$/, ''));
+  allowedOrigins.push(...configured);
+}
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (e.g. mobile apps, curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+
+      // Allow configured origins or any onrender.com deployment origin
+      const isAllowed =
+        allowedOrigins.includes(normalizedOrigin) ||
+        /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(normalizedOrigin);
+
+      if (isAllowed) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );
