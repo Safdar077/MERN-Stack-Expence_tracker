@@ -102,10 +102,11 @@ const DashboardPage = () => {
 
   // Calculate budget values
   const budgetLimit = budget?.overallAmount ?? overview?.budget?.limit ?? 0;
+  const firstWarning = budgetWarnings && budgetWarnings.length > 0 ? budgetWarnings[0] : null;
   const activeBudgetWarning =
-    budgetWarnings && budgetWarnings.length > 0
-      ? budgetWarnings[0].message || budgetWarnings[0]
-      : undefined;
+    typeof firstWarning === 'string'
+      ? firstWarning
+      : firstWarning?.warning || firstWarning?.message || undefined;
 
   return (
     <div data-testid="dashboard-page" className="space-y-6 sm:space-y-8">

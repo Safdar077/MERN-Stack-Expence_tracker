@@ -136,6 +136,7 @@ const getCurrentBudget = async (req, res, next) => {
       warnings.push({
         type: 'overall',
         label: 'Overall Budget',
+        message: overallSummary.warning,
         ...overallSummary,
       });
     }
@@ -152,6 +153,7 @@ const getCurrentBudget = async (req, res, next) => {
           categoryId: catId,
           categoryName: catName,
           categoryIcon: cat && cat.icon ? cat.icon : 'FaQuestionCircle',
+          message: summary.warning,
           ...summary,
         };
 

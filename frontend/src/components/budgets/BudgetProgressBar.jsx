@@ -128,7 +128,13 @@ const BudgetProgressBar = ({
   }
 
   // Determine descriptive warning or notification text
-  let activeWarning = warning || null;
+  let activeWarning = null;
+  if (typeof warning === 'string') {
+    activeWarning = warning;
+  } else if (warning && typeof warning === 'object') {
+    activeWarning = warning.warning || warning.message || null;
+  }
+
   if (!activeWarning && isExceeded) {
     activeWarning = `Budget exceeded by ${formatCurrency(overAmount, currency)}!`;
   } else if (!activeWarning && computedPercentage >= 90 && computedPercentage < 100) {
