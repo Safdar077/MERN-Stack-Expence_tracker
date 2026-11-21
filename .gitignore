@@ -12,4 +12,6 @@ backend/data/
 server/data/
 frontend/dist/
 data/
-
+docs
+.agents
+.superpowers
