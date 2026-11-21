@@ -8,6 +8,8 @@ coverage/
 Thumbs.db
 .superpowers/
 .agents/
+backend/data/
 server/data/
+frontend/dist/
 data/
 

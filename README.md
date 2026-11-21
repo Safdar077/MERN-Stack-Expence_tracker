@@ -37,7 +37,7 @@ flowchart TD
     subgraph Client ["Frontend Client (Port 5180)"]
         UI["React 18 SPA (Vite + Tailwind CSS)"]
         Hooks["Custom Hooks (useAuth, useAccounts, useTransactions...)"]
-        EB["Native EventBus (client/src/utils/eventBus.js)"]
+        EB["Native EventBus (frontend/src/utils/eventBus.js)"]
         AxiosClient["Axios Interceptors (Bearer Token Injection & 401 Handling)"]
         
         UI --> Hooks
@@ -68,7 +68,7 @@ flowchart TD
 ### 1. State Management: Zero External State Stores
 To guarantee predictable data flow and eliminate the memory overhead and boilerplate of Redux, RTK Query, or excessive re-renders from React Context API, state is managed entirely through:
 - **Pure Custom React Hooks**: (`useAuth`, `useAccounts`, `useTransactions`, `useBudgets`, `useGoals`, `useRecurring`, `useAnalytics`, `useCategories`).
-- **Decoupled Native Event Bus (`client/src/utils/eventBus.js`)**:
+- **Decoupled Native Event Bus (`frontend/src/utils/eventBus.js`)**:
   - Components broadcast standardized lifecycle events (e.g., `TRANSACTION_CREATED`, `ACCOUNT_UPDATED`, `BUDGET_UPDATED`, `GOAL_CONTRIBUTED`).
   - Active subscriber hooks listening to relevant topics automatically re-fetch synchronized backend state.
   - No global Context wrappers; zero unnecessary DOM re-renders.
@@ -78,8 +78,8 @@ To guarantee predictable data flow and eliminate the memory overhead and boilerp
 - External icon libraries such as `lucide-react` are **strictly forbidden** and excluded from dependencies.
 
 ### 3. Strict Port Allocation
-- **Client (Frontend)**: Runs on **Port 5180** exclusively (`client/vite.config.js`).
-- **Server (Backend API)**: Runs on **Port 5050** exclusively (`server/src/server.js`).
+- **Frontend Client**: Runs on **Port 5180** exclusively (`frontend/vite.config.js`).
+- **Backend Server API**: Runs on **Port 5050** exclusively (`backend/src/server.js`).
 - **Forbidden Ports**: Ports `3000`, `5173`, and `5022` are strictly blacklisted to avoid cross-project collision.
 
 ---
@@ -233,7 +233,7 @@ All protected endpoints require the HTTP Header: `Authorization: Bearer <JWT_TOK
 
 ## ⚙️ Environment Variables Guide
 
-### Server (`server/.env`)
+### Backend (`backend/.env`)
 | Variable | Description | Default Development Value |
 | :--- | :--- | :--- |
 | `PORT` | Listening TCP port for Express server | `5050` |
@@ -242,7 +242,7 @@ All protected endpoints require the HTTP Header: `Authorization: Bearer <JWT_TOK
 | `CLIENT_URL`| Whitelisted frontend URL for CORS | `http://localhost:5180` |
 | `NODE_ENV`  | Runtime environment mode | `development` |
 
-### Client (`client/.env`)
+### Frontend (`frontend/.env`)
 | Variable | Description | Default Development Value |
 | :--- | :--- | :--- |
 | `VITE_API_BASE_URL` | Base API prefix (handled by Vite reverse proxy) | `/api` |
@@ -270,23 +270,23 @@ All protected endpoints require the HTTP Header: `Authorization: Bearer <JWT_TOK
    npm install
 
    # Install backend dependencies
-   npm install --prefix server
+   npm install --prefix backend
 
    # Install frontend dependencies
-   npm install --prefix client
+   npm install --prefix frontend
    ```
 
 3. **Configure Environment Files**
    ```bash
-   # Server environment setup
-   cp server/.env.example server/.env
+   # Backend environment setup
+   cp backend/.env.example backend/.env
 
-   # Client environment setup
-   cp client/.env.example client/.env
+   # Frontend environment setup
+   cp frontend/.env.example frontend/.env
    ```
 
 4. **Launch the Application**
-   You can run both client and server concurrently from the root directory:
+   You can run both frontend and backend concurrently from the root directory:
    ```bash
    npm run dev
    ```
@@ -294,10 +294,10 @@ All protected endpoints require the HTTP Header: `Authorization: Bearer <JWT_TOK
    Or run them independently in separate terminal windows:
    ```bash
    # Terminal 1 - Backend Server (Port 5050)
-   npm run server
+   npm run backend
 
    # Terminal 2 - Frontend Client (Port 5180)
-   npm run client
+   npm run frontend
    ```
 
 5. **Access the Application**
@@ -313,7 +313,7 @@ The project enforces high test coverage across both backend and frontend layers.
 ### Run Frontend Tests (Vitest)
 Executes all 42 frontend test suites (272 tests) validating hooks, event bus synchronization, modals, and page rendering:
 ```bash
-npm test --prefix client
+npm test --prefix frontend
 ```
 *Expected Result:*
 ```
@@ -322,14 +322,14 @@ Tests       272 passed (272)
 ```
 
 ### Run Backend Tests (Jest & Supertest)
-Executes all 6 integration test suites (92 tests) with full database teardowns and multi-tenant security verification:
+Executes all 7 integration test suites (111 tests) with full database teardowns and multi-tenant security verification:
 ```bash
-npm test --prefix server
+npm test --prefix backend
 ```
 *Expected Result:*
 ```
-Test Suites  6 passed (6)
-Tests        92 passed (92)
+Test Suites  7 passed (7)
+Tests        111 passed (111)
 ```
 
 ---
@@ -344,7 +344,7 @@ Tests        92 passed (92)
 
 ### 2. Backend Deployment (Render / Railway)
 1. Link your Git repository to **Render** as a **Web Service**.
-2. **Root Directory**: `server`
+2. **Root Directory**: `backend`
 3. **Build Command**: `npm install`
 4. **Start Command**: `npm start`
 5. Configure Environment Variables in Render Dashboard:
@@ -357,12 +357,12 @@ Tests        92 passed (92)
 ### 3. Frontend Deployment (Vercel / Netlify)
 1. Link your Git repository to **Vercel**.
 2. **Framework Preset**: `Vite`
-3. **Root Directory**: `client`
+3. **Root Directory**: `frontend`
 4. **Build Command**: `npm run build`
 5. **Output Directory**: `dist`
 6. Configure Environment Variables in Vercel:
    - `VITE_API_BASE_URL`: `https://your-backend-api.onrender.com/api`
-7. In `client/vercel.json`, ensure SPA client-side route rewrites are enabled:
+7. In `frontend/vercel.json`, ensure SPA client-side route rewrites are enabled:
    ```json
    {
      "rewrites": [
