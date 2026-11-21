@@ -24,7 +24,8 @@ A comprehensive, production-ready full-stack personal finance application built 
 - [Local Setup & Installation](#-local-setup--installation)
 - [Testing Suite & Quality Assurance](#-testing-suite--quality-assurance)
 - [Production Deployment Guide](#-production-deployment-guide)
-- [Known Limitations & Future Roadmap](#-known-limitations--future-roadmap)
+- [What We Can Improve (Future Enhancements)](#-what-we-can-improve-future-enhancements)
+- [Known Limitations](#-known-limitations)
 
 ---
 
@@ -373,18 +374,35 @@ Tests        111 passed (111)
 
 ---
 
-## 🧭 Known Limitations & Future Roadmap
+## 💡 What We Can Improve (Future Enhancements)
 
-### Known Limitations
+While the application fulfills all core expense tracking, budgeting, and analytics requirements, the following key features represent the highest-priority enhancements for subsequent versions:
+
+### 1. Automated UPI & Online Banking Integration
+* **Real-Time Payment Webhooks**: Integrate with Indian UPI rails (NPCI / Setu / RazorpayX Account Aggregator APIs) or SMS consent parser on mobile.
+* **Zero-Effort Expense Capture**: Whenever a user completes an online UPI payment (via Google Pay, PhonePe, Paytm, or net banking), the transaction is automatically captured and recorded as an **Expense** with intelligent merchant-based category tagging (e.g. Swiggy/Zomato -> Food, Uber/Ola -> Travel).
+* **Automatic Inflow Detection**: When funds are received via UPI ID or direct account deposit, the engine automatically records the amount as **Income** and updates the associated wallet balance instantly, removing the friction of manual data entry.
+
+### 2. Inter-Account Funds Transfer & ATM Cash Management
+* **Account-to-Account Transfers**: Add a dedicated "Transfer Funds" workflow allowing users to move money between accounts (e.g., Bank Checking ⇄ Cash, or Wallet ⇄ Bank).
+* **ATM Cash Withdrawal Tracking**: When a user withdraws cash from an ATM:
+  - The withdrawn sum is deducted from their **Bank Account (Online Balance)**.
+  - The exact same amount is credited to their **Cash Account (Physical Wallet)**.
+  - Crucially, this operation is recorded as a balance rebalancing transfer rather than a net expense or income, ensuring monthly budget spending and analytics charts remain completely accurate.
+* **Cash Deposit Reversal**: Similarly supports physical cash deposits at CDMs or bank branches, moving funds from Cash to Bank Checking with zero ledger drift.
+
+### 3. Additional Planned Features
+* **AI Receipt & Invoice OCR**: Optical Character Recognition (OCR) via Google Cloud Vision or Tesseract to extract merchant name, transaction date, line items, and total amount directly from uploaded receipts.
+* **Web Push Notifications**: Service Worker push notifications alerting users 24–48 hours before recurring EMI, rent, or subscription payments become overdue.
+* **Multi-Currency & Live Forex Rates**: Real-time currency conversions via OpenExchangeRates API for users managing multi-currency bank accounts or international travel budgets.
+* **Two-Factor Authentication (2FA)**: Time-based One-Time Password (TOTP) authentication via Google Authenticator or Authy for elevated security.
+
+---
+
+## 🧭 Known Limitations
+
 - **Single Currency Base**: While users can set their preferred currency symbol on registration, multi-currency conversion with live forex rates is not yet supported.
 - **Manual Receipt Attachments**: Receipts and invoice uploads are currently limited to text notes rather than binary image/PDF uploads.
-
-### Future Roadmap
-- [ ] Multi-currency conversion via real-time exchange rate API.
-- [ ] Receipt OCR scanning with cloud file storage (AWS S3 or Cloudinary).
-- [ ] Push notifications / Web Push API for due recurring payments.
-- [ ] Two-factor authentication (TOTP via Google Authenticator).
-- [ ] Dark / Light mode UI theme switcher.
 
 ---
 
