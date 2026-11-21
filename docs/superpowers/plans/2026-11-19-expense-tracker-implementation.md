@@ -83,13 +83,13 @@ graph TD
 - Root scripts: `npm run dev` (starts both client on 5180 and server on 5050), `npm run server`, `npm run client`, `npm test`
 - Ports: Server `PORT=5050`, Client `5180`
 
-- [ ] **Step 1: Create root `.gitignore` and root `package.json`**
+- [x] **Step 1: Create root `.gitignore` and root `package.json`**
 Configure concurrently/scripts to run both client and server simultaneously.
-- [ ] **Step 2: Scaffold `server/package.json`**
+- [x] **Step 2: Scaffold `server/package.json`**
 Include dependencies: `express`, `mongoose`, `dotenv`, `cors`, `helmet`, `bcryptjs`, `jsonwebtoken`, `zod`, `express-rate-limit`. Dev dependencies: `jest`, `supertest`, `nodemon`.
-- [ ] **Step 3: Create `server/.env.example` and `server/.env`**
+- [x] **Step 3: Create `server/.env.example` and `server/.env`**
 Set `PORT=5050`, `MONGO_URI=mongodb://127.0.0.1:27017/expense_tracker`, `JWT_SECRET=super_secret_jwt_key_for_development_12345!`, `CLIENT_URL=http://localhost:5180`.
-- [ ] **Step 4: Verify root and server package initialization**
+- [x] **Step 4: Verify root and server package initialization**
 Run: `npm install` inside `server/`. Expected: Dependencies install cleanly with exit code 0.
 
 ---
@@ -107,13 +107,13 @@ Run: `npm install` inside `server/`. Expected: Dependencies install cleanly with
 - `errorHandler(err, req, res, next)`: centralized error middleware returning `{ success: false, message: err.message, stack: process.env.NODE_ENV === 'development' ? err.stack : undefined }`.
 - `app`: Express app configured with `cors({ origin: 'http://localhost:5180', credentials: true })`, `helmet()`, `express.json()`, and health check route `GET /api/health`.
 
-- [ ] **Step 1: Implement `server/src/config/db.js`**
+- [x] **Step 1: Implement `server/src/config/db.js`**
 Write Mongoose connection logic with clear comments explaining local connection string and Atlas readiness.
-- [ ] **Step 2: Implement `server/src/middleware/errorMiddleware.js`**
+- [x] **Step 2: Implement `server/src/middleware/errorMiddleware.js`**
 Handle 404 for undefined routes and 500/Zod/CastError exceptions with JSON responses.
-- [ ] **Step 3: Implement `server/src/app.js` and `server/src/server.js`**
+- [x] **Step 3: Implement `server/src/app.js` and `server/src/server.js`**
 Wire CORS, express.json, `/api/health`, and error handling. Listen on `process.env.PORT || 5050`.
-- [ ] **Step 4: Verify server starts on port 5050**
+- [x] **Step 4: Verify server starts on port 5050**
 Run server with `node server/src/server.js` for 3 seconds and test `GET http://localhost:5050/api/health`. Expected: `{ status: "ok" }`.
 
 ---
@@ -134,20 +134,20 @@ Run server with `node server/src/server.js` for 3 seconds and test `GET http://l
 - `GET /api/auth/me`: requires `Bearer <token>`, returns `{ success: true, user }`.
 - Rate limiter: Maximum 10 auth requests per 15 minutes per IP.
 
-- [ ] **Step 1: Write failing test in `server/tests/auth.test.js`**
+- [x] **Step 1: Write failing test in `server/tests/auth.test.js`**
 Assert registration creates user and returns JWT token; assert invalid credentials return 401; assert `/api/auth/me` without token returns 401.
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `npx jest server/tests/auth.test.js`
 Expected: FAIL (Cannot find module).
-- [ ] **Step 3: Implement `User.js` with bcrypt password hashing hook**
+- [x] **Step 3: Implement `User.js` with bcrypt password hashing hook**
 Add schema with name, email (unique, lowercase), password (hashed), currency.
-- [ ] **Step 4: Implement `authValidator.js` using Zod**
+- [x] **Step 4: Implement `authValidator.js` using Zod**
 Validate email format and password minimum length (6 characters).
-- [ ] **Step 5: Implement `authMiddleware.js`**
+- [x] **Step 5: Implement `authMiddleware.js`**
 Verify Bearer token with `jwt.verify`, find user by id, attach to `req.user`.
-- [ ] **Step 6: Implement `authController.js` and `authRoutes.js`**
+- [x] **Step 6: Implement `authController.js` and `authRoutes.js`**
 Register, Login, Me with detailed inline comments.
-- [ ] **Step 7: Run test to verify it passes**
+- [x] **Step 7: Run test to verify it passes**
 Run: `npx jest server/tests/auth.test.js`
 Expected: PASS (All test assertions pass).
 
@@ -171,13 +171,13 @@ Expected: PASS (All test assertions pass).
 - `GET /api/categories`: returns default categories (`userId: null`) plus custom categories created by `req.user._id`.
 - `POST /api/categories`: creates custom category for `req.user._id`.
 
-- [ ] **Step 1: Implement `Account.js` and `Category.js` models**
+- [x] **Step 1: Implement `Account.js` and `Category.js` models**
 Schemas with strict typing, indexes on `userId`. Include default seed categories for expense and income.
-- [ ] **Step 2: Implement `accountController.js` and `accountRoutes.js`**
+- [x] **Step 2: Implement `accountController.js` and `accountRoutes.js`**
 Include user-scoping on every query (`{ userId: req.user._id }`).
-- [ ] **Step 3: Implement `categoryController.js` and `categoryRoutes.js`**
+- [x] **Step 3: Implement `categoryController.js` and `categoryRoutes.js`**
 Query `{ $or: [{ userId: null }, { userId: req.user._id }] }` to deliver default and custom categories.
-- [ ] **Step 4: Verify accounts and categories endpoints**
+- [x] **Step 4: Verify accounts and categories endpoints**
 Manual or test verification creating an account and fetching default categories.
 
 ---
@@ -200,16 +200,16 @@ Manual or test verification creating an account and fetching default categories.
 - `DELETE /api/transactions/:id`: deletes transaction and reverses balance impact.
 - `GET /api/transactions/export`: generates and downloads CSV formatted with active query filters.
 
-- [ ] **Step 1: Write failing isolation test in `server/tests/isolation.test.js`**
+- [x] **Step 1: Write failing isolation test in `server/tests/isolation.test.js`**
 User A creates a transaction. User B attempts `GET /api/transactions/:id` and `DELETE /api/transactions/:id` with User A's ID. Assert response is 404.
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 Run: `npx jest server/tests/isolation.test.js`
 Expected: FAIL.
-- [ ] **Step 3: Implement `Transaction.js` model and `transactionValidator.js`**
+- [x] **Step 3: Implement `Transaction.js` model and `transactionValidator.js`**
 Schema with indexes `{ userId: 1, date: -1 }`. Zod validator checking amount > 0, valid type, valid ObjectIDs.
-- [ ] **Step 4: Implement `transactionController.js`**
+- [x] **Step 4: Implement `transactionController.js`**
 Implement CRUD, pagination, filter builder, balance delta adjustments, and CSV export.
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 Run: `npx jest server/tests/transactions.test.js server/tests/isolation.test.js`
 Expected: PASS.
 
@@ -237,15 +237,15 @@ Expected: PASS.
 - `GET /api/recurring`: returns active recurring rules and list of currently due or upcoming items based on JavaScript `Date` math.
 - `POST /api/recurring/:id/pay`: marks recurring expense as paid, creates transaction, updates `nextDueDate` to next cycle.
 
-- [ ] **Step 1: Implement `Budget.js`, `SavingsGoal.js`, and `RecurringRule.js` models**
+- [x] **Step 1: Implement `Budget.js`, `SavingsGoal.js`, and `RecurringRule.js` models**
 Schemas with proper types and `userId` scoping.
-- [ ] **Step 2: Implement `budgetController.js`**
+- [x] **Step 2: Implement `budgetController.js`**
 Aggregate monthly expenses for overall and per-category budgets. Compute warning thresholds (50%, 90%, 100%, 100%+).
-- [ ] **Step 3: Implement `goalController.js`**
+- [x] **Step 3: Implement `goalController.js`**
 CRUD for savings goals with contribution logic.
-- [ ] **Step 4: Implement `recurringController.js`**
+- [x] **Step 4: Implement `recurringController.js`**
 Due date calculation comparing `new Date()` with `nextDueDate`. Support Daily, Weekly, Monthly, Yearly frequencies using JS Date math.
-- [ ] **Step 5: Wire routes into `server/src/app.js`**
+- [x] **Step 5: Wire routes into `server/src/app.js`**
 Mount `/api/budgets`, `/api/goals`, `/api/recurring`.
 
 ---
@@ -261,10 +261,10 @@ Mount `/api/budgets`, `/api/goals`, `/api/recurring`.
 - `GET /api/analytics/categories?timeframe=Month`: aggregates expenses grouped by category for donut/pie charts.
 - `GET /api/analytics/trends?timeframe=Week|Month|3Months|Year`: aggregates income and expense grouped by time buckets for line/bar charts.
 
-- [ ] **Step 1: Implement `analyticsController.js` using MongoDB aggregation pipelines**
+- [x] **Step 1: Implement `analyticsController.js` using MongoDB aggregation pipelines**
 Aggregate live transactions filtered by `userId` and date range. Compute dynamically — zero hardcoded numbers.
-- [ ] **Step 2: Mount `analyticsRoutes.js` in `server/src/app.js`**
-- [ ] **Step 3: Verify analytics endpoint**
+- [x] **Step 2: Mount `analyticsRoutes.js` in `server/src/app.js`**
+- [x] **Step 3: Verify analytics endpoint**
 Test with sample transactions to verify dynamic sums and breakdown grouping.
 
 ---
@@ -286,15 +286,15 @@ Test with sample transactions to verify dynamic sums and breakdown grouping.
 - `axiosClient`: configured with baseURL `/api`, request interceptor attaching `Authorization: Bearer <token>` from `localStorage`, response interceptor redirecting to `/login` on 401.
 - `eventBus.js`: exports `emitSync(eventType)` and `onSync(callback)` using browser `window.addEventListener('app:sync')` and `window.dispatchEvent`.
 
-- [ ] **Step 1: Initialize `client/package.json`**
+- [x] **Step 1: Initialize `client/package.json`**
 Dependencies: `react`, `react-dom`, `react-router-dom`, `axios`, `react-icons`, `recharts`. Dev dependencies: `vite`, `tailwindcss`, `postcss`, `autoprefixer`, `@testing-library/react`, `@testing-library/jest-dom`, `vitest`, `jsdom`.
-- [ ] **Step 2: Configure `client/vite.config.js`**
+- [x] **Step 2: Configure `client/vite.config.js`**
 Set dev server `server: { port: 5180, proxy: { '/api': 'http://localhost:5050' } }`.
-- [ ] **Step 3: Configure Tailwind CSS and `index.css`**
+- [x] **Step 3: Configure Tailwind CSS and `index.css`**
 Setup Tailwind directives `@tailwind base; @tailwind components; @tailwind utilities;`.
-- [ ] **Step 4: Implement `axiosClient.js` and `eventBus.js`**
+- [x] **Step 4: Implement `axiosClient.js` and `eventBus.js`**
 With comprehensive inline comments.
-- [ ] **Step 5: Verify client builds and runs**
+- [x] **Step 5: Verify client builds and runs**
 Run: `npm run build` inside `client/`. Expected: Vite builds with 0 errors.
 
 ---
@@ -319,11 +319,11 @@ Run: `npm run build` inside `client/`. Expected: Vite builds with 0 errors.
 - `useGoals()`: `{ goals, loading, createGoal, contributeGoal }`. Subscribes to `onSync`.
 - `useAnalytics(timeframe)`: `{ overview, categoryBreakdown, spendingTrends, loading }`.
 
-- [ ] **Step 1: Implement `useAuth.js`**
+- [x] **Step 1: Implement `useAuth.js`**
 Persist user and token in `localStorage`, handle login/register/logout states cleanly.
-- [ ] **Step 2: Implement `useTransactions.js` and `useAccounts.js`**
+- [x] **Step 2: Implement `useTransactions.js` and `useAccounts.js`**
 Include `useEffect` hook listening to `onSync` to automatically refresh data when sync events occur.
-- [ ] **Step 3: Implement `useBudgets.js`, `useRecurring.js`, `useGoals.js`, and `useAnalytics.js`**
+- [x] **Step 3: Implement `useBudgets.js`, `useRecurring.js`, `useGoals.js`, and `useAnalytics.js`**
 Document all state flows with comments.
 
 ---
@@ -363,9 +363,9 @@ Configure React Router with protected routes and public routes (`/login`, `/regi
 - `LoginPage`: Email and password form, loading spinner, error alert banner, switch link to register.
 - `RegisterPage`: Name, email, password form, validation error display, switch link to login.
 
-- [ ] **Step 1: Implement `LoginPage.jsx`**
+- [x] **Step 1: Implement `LoginPage.jsx`**
 Form with clean Tailwind styling, input labels, error handling, redirect to `/dashboard` on success.
-- [ ] **Step 2: Implement `RegisterPage.jsx`**
+- [x] **Step 2: Implement `RegisterPage.jsx`**
 Registration form with validation and instant login on success.
 
 ---
@@ -404,11 +404,11 @@ Assemble overview cards, budget bar, quick add button, and recent transactions t
 - `FilterBar`: Combinable filters (Type, Category, Account, Date range, Amount range), Search input, and "Export CSV" button.
 - Backend Pagination: Next / Previous buttons, page indicator, page limit selector.
 
-- [ ] **Step 1: Implement `FilterBar.jsx`**
+- [x] **Step 1: Implement `FilterBar.jsx`**
 Inputs for search query, type dropdown, category dropdown, account dropdown, date range, and CSV export action trigger.
-- [ ] **Step 2: Implement `TransactionTable.jsx`**
+- [x] **Step 2: Implement `TransactionTable.jsx`**
 Table displaying transactions, category icon from `react-icons`, formatted currency, edit action, delete action, and pagination controls.
-- [ ] **Step 3: Implement `TransactionsPage.jsx`**
+- [x] **Step 3: Implement `TransactionsPage.jsx`**
 Connect filter states to `useTransactions` hook so queries execute on the backend without pulling the entire collection client-side.
 
 ---
@@ -469,10 +469,10 @@ Wire timeframe toggle to `useAnalytics` hook so charts re-render dynamically wit
   2. `TransactionModal`: renders all fields (amount, type, category, account), enforces amount validation.
   3. `TransactionTable`: renders transaction items, displays empty state when transaction list is empty.
 
-- [ ] **Step 1: Write `LoginForm.test.jsx`**
-- [ ] **Step 2: Write `TransactionModal.test.jsx`**
-- [ ] **Step 3: Write `TransactionTable.test.jsx`**
-- [ ] **Step 4: Run frontend tests**
+- [x] **Step 1: Write `LoginForm.test.jsx`**
+- [x] **Step 2: Write `TransactionModal.test.jsx`**
+- [x] **Step 3: Write `TransactionTable.test.jsx`**
+- [x] **Step 4: Run frontend tests**
 Run: `npm run test` inside `client/`. Expected: PASS (3/3 test suites passing).
 
 ---
@@ -495,10 +495,10 @@ Run: `npm run test` inside `client/`. Expected: PASS (3/3 test suites passing).
   - Deployment Guide for MongoDB Atlas, Render, and Vercel
   - Known Limitations
 
-- [ ] **Step 1: Write comprehensive root `README.md`**
-- [ ] **Step 2: Run complete backend test suite**
+- [x] **Step 1: Write comprehensive root `README.md`**
+- [x] **Step 2: Run complete backend test suite**
 Run: `npm test` in `server/`. Expected: PASS.
-- [ ] **Step 3: Run complete frontend test suite**
+- [x] **Step 3: Run complete frontend test suite**
 Run: `npm test` in `client/`. Expected: PASS.
-- [ ] **Step 4: Run end-to-end sanity check**
+- [x] **Step 4: Run end-to-end sanity check**
 Verify server on port 5050 and client on port 5180 with MongoDB local instance.
