@@ -51,28 +51,31 @@ if (process.env.CLIENT_URL) {
   allowedOrigins.push(...configured);
 }
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (e.g. mobile apps, curl, Postman, server-to-server)
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (e.g. mobile apps, curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
 
-      const normalizedOrigin = origin.replace(/\/+$/, '');
+    const normalizedOrigin = origin.replace(/\/+$/, '');
 
-      // Allow configured origins or any onrender.com deployment origin
-      const isAllowed =
-        allowedOrigins.includes(normalizedOrigin) ||
-        /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(normalizedOrigin);
+    // Allow configured origins or any onrender.com deployment origin
+    const isAllowed =
+      allowedOrigins.includes(normalizedOrigin) ||
+      /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(normalizedOrigin);
 
-      if (isAllowed) {
-        return callback(null, true);
-      }
+    if (isAllowed) {
+      return callback(null, true);
+    }
 
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true,
-  })
-);
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 /**
  * Body Parsing Middlewares
